@@ -1,0 +1,62 @@
+import React from 'react';
+import Link from 'next/link';
+import { db } from '@/lib/db';
+import { MapPin, Building2 } from 'lucide-react';
+
+export const revalidate = 0;
+
+export default async function DistrictsPage() {
+  const divisions = await db.division.findMany({
+    include: {
+      districts: {
+        include: {
+          _count: { select: { hospitals: true } },
+        },
+        orderBy: { nameEn: 'asc' },
+      },
+    },
+    orderBy: { nameEn: 'asc' },
+  });
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+      <div>
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Bangladesh Hospital District Directory</h1>
+        <p className="text-slate-500 text-sm mt-1">
+          Explore hospitals and doctor appointment chambers across all 8 Divisions and 64 Districts of Bangladesh.
+        </p>
+      </div>
+
+      <div className="space-y-10">
+        {divisions.map((division) => (
+          <div key={division.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <MapPin className="w-5 h-5 text-medical-600" />
+              <h2 className="text-xl font-bold text-slate-900">
+                {division.nameEn} Division ({division.nameBn})
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {division.districts.map((dist) => (
+                <Link
+                  key={dist.id}
+                  href={`/hospitals?district=${dist.slug}`}
+                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-medical-50 border border-slate-200/80 hover:border-medical-200 transition-all group"
+                >
+                  <div>
+                    <h3 className="font-semibold text-xs text-slate-800 group-hover:text-medical-700">
+                      {dist.nameEn} ({dist.nameBn})
+                    </h3>
+                    <p className="text-[10px] text-slate-500">{dist._count.hospitals} Hospitals</p>
+                  </div>
+                  <Building2 className="w-4 h-4 text-slate-400 group-hover:text-medical-600" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,269 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Constant String Roles: "SUPER_ADMIN", "HOSPITAL_ADMIN", "HOSPITAL_STAFF", "PATIENT"
+// Constant String HospitalStatus: "PENDING", "APPROVED", "REJECTED", "SUSPENDED"
+// Constant String DoctorStatus: "ACTIVE", "INACTIVE", "ON_LEAVE"
+// Constant String AppointmentStatus: "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"
+
+model User {
+  id           String      @id @default(uuid())
+  name         String
+  email        String      @unique
+  phone        String?
+  passwordHash String
+  role         String      @default("PATIENT")
+  hospitalId   String?
+  hospital     Hospital?   @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  AuditLog     AuditLog[]
+}
+
+model Division {
+  id        String     @id @default(uuid())
+  nameEn    String     @unique
+  nameBn    String
+  slug      String     @unique
+  districts District[]
+}
+
+model District {
+  id         String     @id @default(uuid())
+  divisionId String
+  division   Division   @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  nameEn     String
+  nameBn     String
+  slug       String     @unique
+  hospitals  Hospital[]
+
+  @@unique([divisionId, nameEn])
+}
+
+model Hospital {
+  id              String                 @id @default(uuid())
+  name            String
+  slug            String                 @unique
+  districtId      String
+  district        District               @relation(fields: [districtId], references: [id])
+  hospitalType    String                 @default("Private Hospital") // Private Hospital, Clinic, Diagnostic Center
+  status          String                 @default("PENDING")
+  isFeatured      Boolean                @default(false)
+  address         String
+  phone           String
+  emergencyPhone  String
+  email           String                 @unique
+  website         String?
+  googleMapUrl    String?
+  establishedYear Int?
+  description     String
+  latitude        Float?
+  longitude       Float?
+  logoUrl         String?
+  coverUrl        String?
+  licenseNumber   String
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  users           User[]
+  facilities      HospitalFacility[]
+  departments     Department[]
+  doctors         Doctor[]
+  appointments    Appointment[]
+  reviews         Review[]
+  subscriptions   HospitalSubscription[]
+  auditLogs       AuditLog[]
+  testAvailabilities TestAvailability[]
+}
+
+model DiagnosticTest {
+  id           String             @id @default(uuid())
+  name         String             @unique
+  slug         String             @unique
+  aliases      String             // JSON array string e.g. ["CBC", "Hb"]
+  category     String             @default("Hematology")
+  isActive     Boolean            @default(true)
+  createdAt    DateTime           @default(now())
+
+  availabilities TestAvailability[]
+}
+
+model TestAvailability {
+  id                 String         @id @default(uuid())
+  testId             String
+  test               DiagnosticTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  hospitalId         String
+  hospital           Hospital       @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  availabilityStatus String         @default("AVAILABLE") // AVAILABLE, UNAVAILABLE
+  price              Int?
+  notes              String?
+  lastVerifiedAt     DateTime       @default(now())
+
+  @@unique([testId, hospitalId])
+}
+
+model HospitalFacility {
+  id           String   @id @default(uuid())
+  hospitalId   String
+  hospital     Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  facilityName String
+  isAvailable  Boolean  @default(true)
+
+  @@unique([hospitalId, facilityName])
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  hospitalId  String
+  hospital    Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  nameEn      String
+  nameBn      String
+  description String?
+  icon        String?
+  doctors     Doctor[]
+
+  @@unique([hospitalId, nameEn])
+}
+
+model Doctor {
+  id              String           @id @default(uuid())
+  hospitalId      String
+  hospital        Hospital         @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  departmentId    String
+  department      Department       @relation(fields: [departmentId], references: [id])
+  name            String
+  slug            String           @unique
+  degrees         String
+  specialization  String
+  bmdcNumber      String
+  experienceYears Int
+  bio             String?
+  treatedDiseases String?
+  languages       String           @default("Bangla, English")
+  consultationFee Int
+  chamberRoom     String
+  phone           String?
+  photoUrl        String?
+  status          String           @default("ACTIVE")
+  createdAt       DateTime         @default(now())
+
+  schedules       DoctorSchedule[]
+  appointments    Appointment[]
+  reviews         Review[]
+}
+
+model DoctorSchedule {
+  id                  String   @id @default(uuid())
+  doctorId            String
+  doctor              Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dayOfWeek           Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  startTime           String   // HH:MM e.g. "17:00"
+  endTime             String   // HH:MM e.g. "20:00"
+  slotDurationMinutes Int      @default(20)
+  maxPatients         Int      @default(10)
+}
+
+model Appointment {
+  id              String   @id @default(uuid())
+  appointmentCode String   @unique // e.g. APT-20260801-98213
+  hospitalId      String
+  hospital        Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  doctorId        String
+  doctor          Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patientName     String
+  patientPhone    String
+  patientAge      Int
+  patientGender   String
+  patientEmail    String?
+  visitReason     String?
+  appointmentDate String   // YYYY-MM-DD
+  timeSlot        String   // e.g. "17:00"
+  status          String   @default("PENDING")
+  createdAt       DateTime @default(now())
+
+  @@unique([doctorId, appointmentDate, timeSlot])
+}
+
+model SubscriptionPlan {
+  id            String                 @id @default(uuid())
+  name          String
+  priceBdt      Int
+  maxDoctors    Int
+  featuresJson  String
+  subscriptions HospitalSubscription[]
+}
+
+model HospitalSubscription {
+  id         String           @id @default(uuid())
+  hospitalId String
+  hospital   Hospital         @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  planId     String
+  plan       SubscriptionPlan @relation(fields: [planId], references: [id])
+  status     String           @default("ACTIVE")
+  startDate  DateTime         @default(now())
+  endDate    DateTime
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  hospitalId  String
+  hospital    Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  doctorId    String?
+  doctor      Doctor?  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patientName String
+  rating      Int
+  comment     String
+  status      String   @default("APPROVED")
+  createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  hospitalId String?
+  hospital   Hospital? @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
+  action     String
+  details    String
+  createdAt  DateTime  @default(now())
+}
+
+model EmergencyHelpline {
+  id          String   @id @default(uuid())
+  title       String
+  number      String
+  desc        String
+  badge       String   @default("Emergency 24/7")
+  icon        String   @default("PhoneCall")
+  isAvailable Boolean  @default(true)
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BloodDonor {
+  id               String    @id @default(uuid())
+  fullName         String
+  phone            String    @unique
+  bloodGroup       String    // A+, A-, B+, B-, AB+, AB-, O+, O-
+  age              Int
+  gender           String?   // Male, Female, Other
+  address          String
+  area             String    // Chuadanga Sadar, Alamdanga, Damurhuda, Jibannagar
+  availability     String    @default("available") // available, unavailable
+  lastDonationDate String?   // YYYY-MM-DD
+  note             String?
+  consent          Boolean   @default(true)
+  status           String    @default("pending") // pending, approved, rejected
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  approvedAt       DateTime?
+}
+

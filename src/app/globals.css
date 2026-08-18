@@ -1,0 +1,289 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-inter: 'Inter', system-ui, sans-serif;
+  --font-noto-sans-bengali: var(--font-noto-sans-bengali), 'Noto Sans Bengali', var(--font-hind-siliguri), 'Hind Siliguri', 'Kalpurush', 'SolaimanLipi', system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-noto-sans-bengali), var(--font-inter), system-ui, sans-serif;
+  background: linear-gradient(180deg, #e0f2fe 0%, #f0f9ff 35%, #f8fafc 100%);
+  color: #0a192f;
+  min-height: 100vh;
+  letter-spacing: 0.012em;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-bengali {
+  font-family: var(--font-noto-sans-bengali), var(--font-inter), system-ui, sans-serif;
+}
+
+.font-noto-bengali-heading {
+  font-family: var(--font-noto-sans-bengali), 'Noto Sans Bengali', var(--font-hind-siliguri), 'Hind Siliguri', sans-serif;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: normal;
+}
+
+/* Nuvica Glassmorphism & UI Utilities */
+.glass-nuvica {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16px 40px -10px rgba(15, 43, 92, 0.08);
+}
+
+.glass-nav-nuvica {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(224, 242, 254, 0.8);
+}
+
+.badge-nuvica {
+  @apply inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/90 text-nuvicaNavy-800 shadow-sm border border-white;
+}
+
+.badge-mint {
+  @apply inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-extrabold bg-sky-500 text-white shadow-sm;
+}
+
+.btn-nuvica-primary {
+  @apply inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-full font-extrabold bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 hover:from-sky-700 hover:via-sky-600 hover:to-sky-700 text-white shadow-md hover:shadow-lg hover:shadow-sky-500/25 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.03] active:scale-[0.97] active:duration-100;
+}
+
+.btn-nuvica-primary:hover svg {
+  transform: translateX(2px);
+  transition: transform 0.3s ease-out;
+}
+
+.btn-nuvica-mint {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-extrabold bg-sky-500 hover:bg-sky-600 text-white shadow-card-glow transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.03] hover:shadow-md hover:shadow-sky-500/25 active:scale-[0.97] active:duration-100;
+}
+
+.btn-nuvica-secondary {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-extrabold bg-white/80 hover:bg-white text-nuvicaNavy-800 border border-white shadow-sm transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.03] hover:shadow-md active:scale-[0.97] active:duration-100;
+}
+
+.btn-nuvica-hotline {
+  @apply inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-full bg-sky-50/90 hover:bg-sky-500 text-sky-700 hover:text-white border border-sky-300/80 hover:border-sky-500 text-xs font-extrabold transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.04] hover:shadow-md hover:shadow-sky-500/25 active:scale-[0.96] active:duration-100 shrink-0;
+}
+
+.btn-nuvica-hotline svg {
+  transition: transform 0.3s ease-out;
+}
+
+.btn-nuvica-hotline:hover svg {
+  transform: rotate(-12deg) scale(1.1);
+}
+
+.card-nuvica {
+  @apply transition-all duration-300 hover:-translate-y-1.5 hover:shadow-nuvica border border-white/80 bg-white/90 backdrop-blur-md rounded-3xl p-6;
+}
+
+.circle-arrow-btn {
+  @apply w-10 h-10 rounded-full bg-sky-500 hover:bg-nuvicaNavy-800 text-white flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-md group-hover:rotate-45;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #e0f2fe;
+}
+::-webkit-scrollbar-thumb {
+  background: #bae6fd;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
+}
+
+/* Base resets & typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-noto-sans-bengali), var(--font-inter), system-ui, sans-serif;
+  letter-spacing: -0.015em;
+}
+
+.shadow-card-glow {
+  box-shadow: 0 10px 30px -10px rgba(14, 165, 233, 0.25);
+}
+
+.shadow-nuvica {
+  box-shadow: 0 20px 40px -15px rgba(15, 43, 92, 0.12);
+}
+
+/* Global Custom Modal Animations */
+@keyframes backdropFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes backdropFadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes modalSpringIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.86) translateY(28px);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.02) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modalSpringOut {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.88) translateY(20px);
+  }
+}
+
+.animate-backdrop-in {
+  animation: backdropFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-backdrop-out {
+  animation: backdropFadeOut 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-modal-spring-in {
+  animation: modalSpringIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-modal-spring-out {
+  animation: modalSpringOut 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Smooth Chat Message & Card Animations */
+@keyframes msgUserSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes msgAiSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cardStaggerPop {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-msg-user {
+  animation: msgUserSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-msg-ai {
+  animation: msgAiSlideIn 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-card-pop {
+  animation: cardStaggerPop 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Mobile Menu Drawer Animations */
+@keyframes drawerSlideInRight {
+  0% {
+    transform: translateX(100%);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes drawerSlideOutRight {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0.9;
+  }
+}
+
+.animate-fade-in-overlay {
+  animation: backdropFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-out-overlay {
+  animation: backdropFadeOut 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-from-right {
+  animation: drawerSlideInRight 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-slide-to-right-exit {
+  animation: drawerSlideOutRight 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Accordion Smooth Expansion Utilities */
+.accordion-smooth-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.accordion-smooth-wrapper.open-card {
+  grid-template-rows: 1fr;
+}
+
+.accordion-smooth-inner {
+  overflow: hidden;
+}
