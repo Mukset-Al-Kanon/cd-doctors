@@ -288,7 +288,7 @@ export default function AiAssistantChat() {
     <>
       {/* CHAT TOGGLE BUTTON */}
       {!isOpen && (
-        <div className="fixed bottom-4 right-4 z-50 font-sans">
+        <div className="fixed bottom-20 md:bottom-6 right-3.5 sm:right-6 z-40 font-sans">
           <button
             onClick={handleToggle}
             aria-label="CD Doctors Assistant Chat"

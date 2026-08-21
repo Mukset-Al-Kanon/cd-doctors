@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Noto_Sans_Bengali, Hind_Siliguri } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
+import MobileBottomNav from '@/components/MobileBottomNav';
 import Footer from '@/components/Footer';
 import InitialLoadingScreen from '@/components/InitialLoadingScreen';
 import AiAssistantChat from '@/components/AiAssistantChat';
@@ -38,12 +39,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="bn" className={`scroll-smooth ${inter.variable} ${notoSansBengali.variable} ${hindSiliguri.variable}`}>
+    <html lang="bn" className={`${inter.variable} ${notoSansBengali.variable} ${hindSiliguri.variable}`}>
       <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 antialiased font-bengali">
         <InitialLoadingScreen />
         <Navbar />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 pb-20 md:pb-0">{children}</main>
         <Footer />
+        <MobileBottomNav />
         <AiAssistantChat />
       </body>
     </html>

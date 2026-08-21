@@ -635,32 +635,6 @@ export default function AdminDoctorsPage() {
                       className="w-full bg-white border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:border-nuvicaNavy-800"
                     />
                   </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Experience (Years)</label>
-                    <input
-                      type="number"
-                      name="experienceYears"
-                      value={formData.experienceYears}
-                      onChange={handleInputChange}
-                      min={1}
-                      max={50}
-                      className="w-full bg-white border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:border-nuvicaNavy-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Consultation Fee (BDT ৳) *</label>
-                    <input
-                      type="number"
-                      name="consultationFee"
-                      required
-                      value={formData.consultationFee}
-                      onChange={handleInputChange}
-                      placeholder="800"
-                      className="w-full bg-white border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:border-nuvicaNavy-800"
-                    />
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

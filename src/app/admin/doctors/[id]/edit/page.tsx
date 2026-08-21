@@ -20,6 +20,7 @@ import {
   ChevronUp,
   UserCheck
 } from 'lucide-react';
+import DoctorCardItem from '@/components/DoctorCardItem';
 
 const WEEK_DAYS = [
   { id: 6, short: 'Sat', bn: 'শনি' },
@@ -29,6 +30,23 @@ const WEEK_DAYS = [
   { id: 3, short: 'Wed', bn: 'বুধ' },
   { id: 4, short: 'Thu', bn: 'বৃহ' },
   { id: 5, short: 'Fri', bn: 'শুক্র' },
+];
+
+const ADMIN_FILTER_CATEGORIES = [
+  { id: 'medicine', labelBn: 'মেডিসিন ও ডায়াবেটিস', enKey: 'Medicine & Diabetes' },
+  { id: 'cardiology', labelBn: 'হৃদরোগ (কার্ডিওলজি)', enKey: 'Cardiology' },
+  { id: 'gynecology', labelBn: 'স্ত্রী ও প্রসূতি রোগ', enKey: 'Gynecology & Obstetrics' },
+  { id: 'pediatrics', labelBn: 'শিশু রোগ ও নবজাতক', enKey: 'Pediatrics & Child Health' },
+  { id: 'orthopedics', labelBn: 'অর্থোপেডিক্স ও হাড়জোড়', enKey: 'Orthopedics & Spine' },
+  { id: 'neurology', labelBn: 'নিউরোমেডিসিন ও ব্রেইন', enKey: 'Neurology & Brain' },
+  { id: 'dermatology', labelBn: 'চর্ম, এলার্জি ও যৌন', enKey: 'Dermatology & Skin' },
+  { id: 'eye', labelBn: 'চক্ষু রোগ (Eye)', enKey: 'Ophthalmology & Eye' },
+  { id: 'ent', labelBn: 'নাক, কান ও গলা (ENT)', enKey: 'ENT & Head Neck' },
+  { id: 'surgery', labelBn: 'জেনারেল ও ল্যাপারোস্কোপিক সার্জারি', enKey: 'General & Laparoscopic Surgery' },
+  { id: 'gastroenterology', labelBn: 'গ্যাস্ট্রোএন্টারোলজি ও লিভার', enKey: 'Gastroenterology & Liver' },
+  { id: 'chest', labelBn: 'বক্ষব্যাধি ও অ্যাজমা', enKey: 'Pulmonology & Chest' },
+  { id: 'urology', labelBn: 'ইউরোলজি ও কিডনি সার্জারি', enKey: 'Urology & Kidney' },
+  { id: 'dental', labelBn: 'ডেন্টাল ও মুখরোগ', enKey: 'Dental Surgery' },
 ];
 
 function EditDoctorForm({ params }: { params: { id: string } }) {
@@ -61,6 +79,22 @@ function EditDoctorForm({ params }: { params: { id: string } }) {
     status: 'ACTIVE',
     availableDays: [6, 0, 1, 2, 3, 4],
   });
+
+  const handleToggleSpecialtyCategory = (cat: typeof ADMIN_FILTER_CATEGORIES[0]) => {
+    const current = formData.specialization.trim();
+    if (!current) {
+      setFormData((prev) => ({ ...prev, specialization: cat.labelBn }));
+    } else if (current.includes(cat.labelBn) || current.includes(cat.enKey)) {
+      const updated = current
+        .replace(cat.labelBn, '')
+        .replace(cat.enKey, '')
+        .replace(/^,\s*|,\s*$/g, '')
+        .replace(/,\s*,/g, ',');
+      setFormData((prev) => ({ ...prev, specialization: updated.trim() }));
+    } else {
+      setFormData((prev) => ({ ...prev, specialization: `${current}, ${cat.labelBn}` }));
+    }
+  };
 
   const [doctorDetails, setDoctorDetails] = useState<any>(null);
 
@@ -396,6 +430,40 @@ function EditDoctorForm({ params }: { params: { id: string } }) {
                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600"
               />
             </div>
+
+            {/* Specialty Filter Category Multi-Selector */}
+            <div className="sm:col-span-2 space-y-2 pt-3 border-t border-slate-100">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <label className="block text-xs font-black text-nuvicaNavy-950 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                  ডাক্তার সার্চ ফিল্টার ক্যাটাগরি যুক্ত করুন (Specialty Filter Categories):
+                </label>
+                <span className="text-[11px] text-slate-500 font-medium">ক্লিক করে ১ বা একাধিক ক্যাটাগরি সেট করুন</span>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                {ADMIN_FILTER_CATEGORIES.map((cat) => {
+                  const isSelected = formData.specialization.includes(cat.labelBn) || 
+                                     formData.specialization.toLowerCase().includes(cat.enKey.toLowerCase()) ||
+                                     formData.specialization.toLowerCase().includes(cat.id.toLowerCase());
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => handleToggleSpecialtyCategory(cat)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer select-none border ${
+                        isSelected
+                          ? 'bg-sky-600 text-white border-sky-600 shadow-sm shadow-sky-600/25 scale-[1.02]'
+                          : 'bg-slate-50 hover:bg-sky-50/80 text-slate-700 hover:text-sky-800 border-slate-200 hover:border-sky-200'
+                      }`}
+                    >
+                      <CheckCircle2 className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-300'}`} />
+                      <span>{cat.labelBn}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -428,32 +496,6 @@ function EditDoctorForm({ params }: { params: { id: string } }) {
                   </option>
                 ))}
               </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700">Visit Fee (৳ BDT) *</label>
-              <input
-                type="number"
-                required
-                name="consultationFee"
-                value={formData.consultationFee}
-                onChange={handleInputChange}
-                placeholder="700"
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700">Years of Experience *</label>
-              <input
-                type="number"
-                required
-                name="experienceYears"
-                value={formData.experienceYears}
-                onChange={handleInputChange}
-                placeholder="10"
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600"
-              />
             </div>
 
             <div className="space-y-1.5">
@@ -601,108 +643,38 @@ function EditDoctorForm({ params }: { params: { id: string } }) {
 
         {/* Live Doctor Profile Card Standard Rule Verification */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
-          <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-sky-600" /> Standard Doctor Profile Card Live Preview
-          </h4>
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-sky-600" /> Standard Doctor Profile Card Live Preview
+            </h4>
+            <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
+              ● Live Dynamic Preview
+            </span>
+          </div>
 
-          <div className="max-w-md mx-auto bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 space-y-4">
-            {/* 1. Header Profile Area */}
-            <div className="flex items-start gap-4">
-              <img
-                src={formData.photoUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80'}
-                alt={formData.name}
-                className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover object-top border-2 border-white shadow-md shrink-0"
-              />
-              <div className="space-y-1 min-w-0 flex-1">
-                <span className="bg-sky-50 text-sky-700 font-extrabold text-[11px] px-2.5 py-0.5 rounded-lg border border-sky-100/90 inline-block max-w-full truncate">
-                  {formData.specialization || 'General Medicine'}
-                </span>
-                <h3 className="font-black text-base sm:text-lg text-nuvicaNavy-900 leading-snug truncate">{formData.name || 'Doctor Name'}</h3>
-                <p className="text-xs text-slate-500 font-medium line-clamp-1">{formData.degrees || 'Degrees'}</p>
-                <p className="text-xs font-bold text-sky-700 line-clamp-1">{formData.specialization}</p>
-                {formData.bmdcNumber && (
-                  <p className="text-[10px] text-slate-400 font-semibold pt-0.5">BMDC Reg: {formData.bmdcNumber}</p>
-                )}
-              </div>
-            </div>
-
-            {/* 2. Chamber & Schedule Box */}
-            <div className="bg-slate-50/90 p-4 rounded-2xl border border-slate-200/80 space-y-3 text-xs text-slate-700 shadow-2xs">
-              <p className="flex items-center gap-2 font-black text-nuvicaNavy-900 text-xs">
-                🏢 <span className="truncate">{selectedHospital?.name || 'Hospital Name'}</span>
-              </p>
-
-              {/* Weekly Schedule Row */}
-              <div className="bg-white p-3 rounded-xl border border-slate-200/70 space-y-1.5 shadow-2xs">
-                <span className="text-[11px] font-black uppercase tracking-wider text-nuvicaNavy-900 flex items-center gap-1.5 whitespace-nowrap">
-                  📅 চেম্বারের দিনসমূহ:
-                </span>
-                <div className="grid grid-cols-7 gap-1 text-center pt-0.5">
-                  {WEEK_DAYS.map((day) => {
-                    const isAvailable = availableDaySet.has(day.id);
-                    return (
-                      <span
-                        key={day.id}
-                        className={`text-[10px] py-1 rounded-md font-extrabold transition-all ${
-                          isAvailable
-                            ? 'bg-sky-500 text-white shadow-2xs'
-                            : 'bg-slate-100 text-slate-400 line-through opacity-60'
-                        }`}
-                      >
-                        {day.bn}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Fee & Experience Row */}
-              <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/60 font-bold text-slate-700">
-                <span>ভিজিট ফি: <strong className="text-sky-700">৳{formData.consultationFee || 700} টাকা</strong></span>
-                <span>অভিজ্ঞতা: <strong className="text-nuvicaNavy-900">{formData.experienceYears || 5} বছর</strong></span>
-              </div>
-            </div>
-
-            {/* 3. Expandable Accordion Bar Live Preview */}
-            <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
-              <button
-                type="button"
-                onClick={() => setShowPreviewAccordion(!showPreviewAccordion)}
-                className="w-full bg-slate-50 hover:bg-slate-100 p-3 text-xs font-bold text-slate-700 tracking-wide flex items-center justify-between transition-colors cursor-pointer"
-              >
-                <span>ⓘ  অভিজ্ঞতা ও চিকিৎসাসমূহ</span>
-                {showPreviewAccordion ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
-              </button>
-
-              {showPreviewAccordion && (
-                <div className="p-4 space-y-3.5 text-xs bg-white border-t border-slate-200">
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-bold text-nuvicaNavy-900 uppercase tracking-wide flex items-center gap-1">
-                      <UserCheck className="w-3.5 h-3.5 text-sky-600" />
-                      ডাক্তারের বিবরণ:
-                    </span>
-                    <p className="text-xs text-slate-700 leading-relaxed font-medium bg-slate-50 p-3 rounded-xl border border-slate-200/70">
-                      {formData.bio || `${formData.name || 'ডাক্তার'} নিয়মিত চিকিৎসাসেবা প্রদান করছেন।`}
-                    </p>
-                  </div>
-
-                  <div className="space-y-1.5 pt-1 border-t border-slate-100">
-                    <span className="text-[11px] font-bold text-nuvicaNavy-900 uppercase tracking-wide flex items-center gap-1">
-                      <Stethoscope className="w-3.5 h-3.5 text-sky-600" />
-                      যেসব রোগের চিকিৎসাসেবা প্রদান করেন:
-                    </span>
-                    <div className="space-y-1">
-                      {treatedDiseasesList.map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-1.5 p-1.5 px-2.5 bg-sky-50/70 rounded-lg border border-sky-100 text-[11px] font-bold text-slate-800 tracking-wide">
-                          <CheckCircle2 className="w-3 h-3 text-sky-600 shrink-0" />
-                          <span>{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+          <div className="max-w-md mx-auto">
+            <DoctorCardItem
+              doc={{
+                id: doctorId || 'preview-doc',
+                name: formData.name || 'ডা. ডাক্তারের নাম',
+                degrees: formData.degrees || 'MBBS, FCPS (Medicine)',
+                specialization: formData.specialization || 'মেডিসিন ও ডায়াবেটিস বিশেষজ্ঞ',
+                photoUrl: formData.photoUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80',
+                phone: formData.phone || selectedHospital?.phone || '01700000000',
+                bio: formData.bio || `${formData.name || 'ডাক্তার'} একজন অভিজ্ঞ ও সুনামধন্য চিকিৎসক। তিনি দীর্ঘকাল ধরে অত্যন্ত দক্ষতার সাথে আধুনিক ও মানসম্মত চিকিৎসাসেবা প্রদান করে আসছেন।`,
+                treatedDiseases: formData.treatedDiseases || 'উচ্চ রক্তচাপ ও হৃদরোগের চিকিৎসা, দীর্ঘমেয়াদী রোগ ও পরামর্শ, বিশেষজ্ঞ স্বাস্থ্য পরামর্শ, জরুরি কেয়ার ও পুনর্বাসন',
+                hospital: {
+                  name: selectedHospital?.name || 'চুয়াডাঙ্গা সদর হাসপাতাল',
+                  slug: selectedHospital?.slug || 'chuadanga-sadar-hospital',
+                  phone: selectedHospital?.phone,
+                },
+                schedules: (formData.availableDays && formData.availableDays.length > 0 ? formData.availableDays : [6, 0, 1, 2, 3, 4]).map((d) => ({
+                  dayOfWeek: d,
+                  startTime: '04:00 PM',
+                  endTime: '09:00 PM',
+                })),
+              }}
+            />
           </div>
         </div>
 

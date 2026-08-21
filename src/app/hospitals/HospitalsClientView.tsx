@@ -100,10 +100,18 @@ export default function HospitalsClientView({
   const [areaFilter, setAreaFilter] = useState<string>('all');
   const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'featured' | 'doctors' | 'name' | 'type'>('featured');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Set default viewMode based on viewport: 'list' for mobile (<768px), 'grid' for desktop
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isDesktop = window.innerWidth >= 768;
+      setViewMode(isDesktop ? 'grid' : 'list');
+    }
+  }, []);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -365,7 +373,7 @@ export default function HospitalsClientView({
                     {/* Info Content */}
                     <div className="px-5 pt-10 space-y-3">
                       <div>
-                        <h3 className="font-black text-lg text-nuvicaNavy-900 leading-snug group-hover:text-sky-600 transition-colors line-clamp-1">
+                        <h3 className="font-black text-lg text-nuvicaNavy-900 leading-snug group-hover:text-sky-600 transition-colors line-clamp-2">
                           <Link href={`/hospitals/${hospital.slug}`}>{hospital.name}</Link>
                         </h3>
                         <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mt-1 truncate">
@@ -464,57 +472,48 @@ export default function HospitalsClientView({
                       </span>
                     </div>
 
-                    <h3 className="font-extrabold text-base sm:text-lg text-nuvicaNavy-900 truncate group-hover:text-sky-600 transition-colors">
+                    <h3 className="font-black text-base sm:text-lg text-nuvicaNavy-900 leading-snug group-hover:text-sky-600 transition-colors line-clamp-2 break-words">
                       <Link href={`/hospitals/${hospital.slug}`}>{hospital.name}</Link>
                     </h3>
 
-                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1 truncate">
-                      <MapPin className="w-3.5 h-3.5 text-sky-500 shrink-0" />
-                      {hospital.address}
+                    <p className="text-xs text-slate-500 font-medium flex items-start gap-1 leading-snug">
+                      <MapPin className="w-3.5 h-3.5 text-sky-500 shrink-0 mt-0.5" />
+                      <span className="line-clamp-2">{hospital.address}</span>
                     </p>
 
-                    {/* Facilities inline list */}
-                    {hospital.facilities.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-slate-600">
-                        {hospital.facilities.slice(0, 3).map((f) => (
-                          <span key={f.id} className="inline-flex items-center gap-1 text-[11px] font-medium bg-slate-100 px-2 py-0.5 rounded-md">
-                            <Check className="w-3 h-3 text-sky-500 shrink-0" />
-                            {f.facilityName}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    {/* Doctor Count & Established Year directly below Location */}
+                    <div className="pt-0.5 flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-sky-50 text-sky-800 rounded-lg font-bold border border-sky-100 text-[11px]">
+                        <Stethoscope className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        <span><strong className="text-sky-900 font-black">{hospital._count.doctors}</strong> জন বিশেষজ্ঞ ডাক্তার</span>
+                      </span>
+                      {hospital.establishedYear && (
+                        <span className="text-[11px] text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
+                          স্থাপিত: {hospital.establishedYear}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 border-slate-100 pt-3 sm:pt-0 gap-3 shrink-0">
-                  <div className="text-xs text-slate-600 font-semibold text-right">
-                    <div>
-                      <strong className="text-nuvicaNavy-900 font-black text-sm">{hospital._count.doctors}</strong> জন বিশেষজ্ঞ ডাক্তার
-                    </div>
-                    {hospital.establishedYear && (
-                      <div className="text-[11px] text-slate-400">স্থাপিত: {hospital.establishedYear}</div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {hospital.phone && (
-                      <a
-                        href={`tel:${hospital.phone}`}
-                        className="btn-nuvica-hotline"
-                        title={`সরাসরি জরুরি ফোন: ${hospital.phone}`}
-                      >
-                        <PhoneCall className="w-3.5 h-3.5" />
-                        <span>হটলাইন</span>
-                      </a>
-                    )}
-                    <Link
-                      href={`/hospitals/${hospital.slug}`}
-                      className="btn-nuvica-primary text-xs !py-2.5 !px-4"
+                {/* Right Action Buttons */}
+                <div className="flex items-center justify-end border-t sm:border-t-0 border-slate-100 pt-3 sm:pt-0 gap-2 shrink-0 w-full sm:w-auto">
+                  {hospital.phone && (
+                    <a
+                      href={`tel:${hospital.phone}`}
+                      className="btn-nuvica-hotline flex-1 sm:flex-initial justify-center"
+                      title={`সরাসরি জরুরি ফোন: ${hospital.phone}`}
                     >
-                      বিস্তারিত <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
+                      <PhoneCall className="w-3.5 h-3.5" />
+                      <span>হটলাইন</span>
+                    </a>
+                  )}
+                  <Link
+                    href={`/hospitals/${hospital.slug}`}
+                    className="btn-nuvica-primary text-xs !py-2.5 !px-4 flex-1 sm:flex-initial justify-center"
+                  >
+                    বিস্তারিত <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
               </div>
             ))}

@@ -35,6 +35,7 @@ import {
   ExternalLink,
   UserCheck
 } from 'lucide-react';
+import DoctorCardItem from '@/components/DoctorCardItem';
 
 const WEEK_DAYS = [
   { id: 6, short: 'Sat', bn: 'শনি' },
@@ -562,121 +563,16 @@ export default function EditHospitalPage({ params }: { params: { id: string } })
                     return (
                       <div key={doc.id} className="bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all p-5 space-y-4 flex flex-col justify-between relative group">
                         
-                        <div className="space-y-4">
-                          {/* 1. Header Profile Area */}
-                          <div className="flex items-start gap-4">
-                            <img
-                              src={doc.photoUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80'}
-                              alt={doc.name}
-                              className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover object-top border-2 border-white shadow-md shrink-0 group-hover:scale-[1.02] transition-transform duration-300"
-                            />
-                            <div className="space-y-1 min-w-0 flex-1">
-                              <span className="bg-sky-50 text-sky-700 font-extrabold text-[11px] px-2.5 py-0.5 rounded-lg border border-sky-100/90 inline-block max-w-full truncate">
-                                {doc.department?.nameEn || doc.specialization || 'General Medicine'}
-                              </span>
-                              <h3 className="font-black text-base sm:text-lg text-nuvicaNavy-900 leading-snug truncate">{doc.name}</h3>
-                              <p className="text-xs text-slate-500 font-medium line-clamp-1">{doc.degrees}</p>
-                              <p className="text-xs font-extrabold text-sky-700 line-clamp-1">{doc.specialization}</p>
-                              {doc.bmdcNumber && (
-                                <p className="text-[10px] text-slate-400 font-semibold pt-0.5">BMDC Reg: {doc.bmdcNumber}</p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* 2. Chamber & Schedule Box */}
-                          <div className="bg-slate-50/90 p-4 rounded-2xl border border-slate-200/80 space-y-3 text-xs text-slate-700 shadow-2xs">
-                            <p className="flex items-center gap-2 font-black text-nuvicaNavy-900 text-xs">
-                              🏢 <span className="truncate">{formData.name || 'Hospital Name'}</span>
-                            </p>
-
-                            {/* Weekly Schedule Row */}
-                            <div className="bg-white p-3 rounded-xl border border-slate-200/70 space-y-1.5 shadow-2xs">
-                              <span className="text-[11px] font-black uppercase tracking-wider text-nuvicaNavy-900 flex items-center gap-1.5 whitespace-nowrap">
-                                📅 চেম্বারের দিনসমূহ:
-                              </span>
-                              <div className="grid grid-cols-7 gap-1 text-center pt-0.5">
-                                {WEEK_DAYS.map((day) => {
-                                  const isAvailable = availableDayNumbers.has(day.id);
-                                  return (
-                                    <span
-                                      key={day.id}
-                                      title={`${day.short}: ${isAvailable ? 'খোলা' : 'বন্ধ'}`}
-                                      className={`text-[10px] py-1.5 rounded-xl font-extrabold transition-all block text-center ${
-                                        isAvailable
-                                          ? 'bg-sky-500 text-white shadow-2xs border border-sky-400 font-black'
-                                          : 'bg-slate-100/80 text-slate-400 border border-slate-200/60 line-through opacity-50'
-                                      }`}
-                                    >
-                                      {day.bn}
-                                    </span>
-                                  );
-                                })}
-                              </div>
-                            </div>
-
-                            {/* Fee & Experience Row */}
-                            <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/60 font-bold text-slate-700">
-                              <span>ভিজিট ফি: <strong className="text-sky-700 font-black">৳{doc.consultationFee || 700} টাকা</strong></span>
-                              <span>অভিজ্ঞতা: <strong className="text-nuvicaNavy-900 font-black">{doc.experienceYears || 5} বছর</strong></span>
-                            </div>
-                          </div>
-
-                          {/* 3. Expandable Accordion Bar */}
-                          <div className="border border-slate-200/80 rounded-2xl overflow-hidden bg-white shadow-2xs">
-                            <button
-                              type="button"
-                              onClick={() => toggleDoctorAccordion(doc.id)}
-                              className={`w-full p-3 text-xs font-extrabold tracking-wide flex items-center justify-between transition-all cursor-pointer select-none ${
-                                isExpanded
-                                  ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
-                                  : 'bg-sky-50/80 hover:bg-sky-100 text-sky-800 border-sky-200/80'
-                              }`}
-                            >
-                              <span className="flex items-center gap-1.5">
-                                ⓘ  অভিজ্ঞতা ও চিকিৎসাসমূহ
-                              </span>
-                              {isExpanded ? <ChevronUp className="w-4 h-4 text-white" /> : <ChevronDown className="w-4 h-4 text-sky-600" />}
-                            </button>
-
-                            {isExpanded && (
-                              <div className="p-4 space-y-3.5 text-xs bg-white border-t border-slate-200/80">
-                                <div className="space-y-1">
-                                  <span className="text-[11px] font-bold text-nuvicaNavy-900 uppercase tracking-wide flex items-center gap-1">
-                                    <UserCheck className="w-3.5 h-3.5 text-sky-600" />
-                                    ডাক্তারের বিবরণ:
-                                  </span>
-                                  <p className="text-xs text-slate-700 leading-relaxed font-medium bg-slate-50 p-3 rounded-xl border border-slate-200/70">
-                                    {doc.bio || `${doc.name} ${formData.name}-এ নিয়মিত চিকিৎসাসেবা প্রদান করছেন।`}
-                                  </p>
-                                </div>
-
-                                <div className="space-y-1.5 pt-1 border-t border-slate-100">
-                                  <span className="text-[11px] font-bold text-nuvicaNavy-900 uppercase tracking-wide flex items-center gap-1">
-                                    <Stethoscope className="w-3.5 h-3.5 text-sky-600" />
-                                    যেসব রোগের চিকিৎসাসেবা প্রদান করেন:
-                                  </span>
-                                  <div className="space-y-1">
-                                    {(doc.treatedDiseases
-                                      ? doc.treatedDiseases.split(',').map((s: string) => s.trim()).filter(Boolean)
-                                      : [
-                                          'উচ্চ রক্তচাপ ও হৃদরোগের চিকিৎসা',
-                                          'দীর্ঘমেয়াদী রোগ ও পরামর্শ',
-                                          'বিশেষজ্ঞ স্বাস্থ্য পরামর্শ',
-                                          'জরুরি কেয়ার ও পুনর্বাসন'
-                                        ]
-                                    ).map((item: string, idx: number) => (
-                                      <div key={idx} className="flex items-center gap-1.5 p-1.5 px-2.5 bg-sky-50/70 rounded-lg border border-sky-100 text-[11px] font-bold text-slate-800 tracking-wide">
-                                        <CheckCircle2 className="w-3 h-3 text-sky-600 shrink-0" />
-                                        <span>{item}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                        </div>
+                        <DoctorCardItem
+                          doc={{
+                            ...doc,
+                            hospital: {
+                              name: formData.name,
+                              slug: (formData.name || 'hospital').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+                              phone: formData.phone,
+                            },
+                          }}
+                        />
 
                         {/* Admin Control Actions Bar */}
                         <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">

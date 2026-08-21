@@ -22,7 +22,9 @@ import {
   PhoneCall,
   Home,
   Info,
-  UserPlus
+  UserPlus,
+  ScanLine,
+  Sparkles
 } from 'lucide-react';
 import ProfileEditModal from './ProfileEditModal';
 
@@ -32,6 +34,7 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [showScanModal, setShowScanModal] = useState(false);
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [user, setUser] = useState<{ name: string; email: string; phone?: string | null; role: string } | null>(null);
 
