@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { CD_DOCTORS_PLATFORM_KNOWLEDGE } from '@/lib/platformKnowledge';
+import { FALLBACK_DONORS, FALLBACK_DOCTORS, FALLBACK_HOSPITALS } from '@/lib/staticHospitalData';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0; // Live real-time data always
@@ -482,7 +483,7 @@ const DOCTOR_NAME_ALIASES: Array<{ nameEn: string; aliases: string[] }> = [
   );
 
   // Format Doctors
-  const formattedDoctors = doctors.map((d) => {
+  let formattedDoctors = doctors.map((d) => {
     const schedules = d.schedules.map((s) => `${DAY_NAMES_BN[s.dayOfWeek]} (${s.startTime}-${s.endTime})`);
     const phone = d.phone || d.hospital?.phone || d.hospital?.emergencyPhone || '';
     return {
@@ -500,14 +501,58 @@ const DOCTOR_NAME_ALIASES: Array<{ nameEn: string; aliases: string[] }> = [
     };
   });
 
+  if (formattedDoctors.length === 0) {
+    const filteredDocs = FALLBACK_DOCTORS.filter((doc) => {
+      if (matchedDoctorNames.length > 0) {
+        return matchedDoctorNames.includes(doc.name);
+      }
+      if (detectedSpecialties.length > 0) {
+        return detectedSpecialties.some((dept) =>
+          (doc.specialization && doc.specialization.toLowerCase().includes(dept)) ||
+          (doc.department?.nameEn && doc.department.nameEn.toLowerCase().includes(dept))
+        );
+      }
+      return true;
+    });
+
+    formattedDoctors = (filteredDocs.length > 0 ? filteredDocs : FALLBACK_DOCTORS).map((d) => ({
+      name: d.name,
+      specialization: d.specialization,
+      degrees: d.degrees,
+      department: d.department?.nameBn || d.specialization,
+      experienceYears: d.experienceYears,
+      fee: `${d.consultationFee} ৳`,
+      hospitalName: d.hospital?.name || '',
+      hospitalAddress: d.hospital?.address || '',
+      chamberRoom: d.chamberRoom,
+      phone: d.phone,
+      visitingSchedule: 'শনিবার-বৃহস্পতিবার (বিকাল ৪:০০ - রাত ৮:০০)',
+    }));
+  }
+
   // Format Blood Donors
-  const formattedBloodDonors = bloodDonors.map((b) => ({
+  let formattedBloodDonors = bloodDonors.map((b) => ({
     name: b.fullName,
     bloodGroup: b.bloodGroup,
     area: b.area,
     phone: b.phone,
     availability: b.availability === 'available' ? 'রক্তদানে প্রস্তুত' : 'সাময়িক অনুপলব্ধ',
   }));
+
+  if (formattedBloodDonors.length === 0) {
+    const bgFilter = params.bloodGroup ? params.bloodGroup.toUpperCase() : '';
+    const filtered = FALLBACK_DONORS.filter((donor) => {
+      if (bgFilter && donor.bloodGroup !== bgFilter) return false;
+      return true;
+    });
+    formattedBloodDonors = filtered.map((b) => ({
+      name: b.fullName,
+      bloodGroup: b.bloodGroup,
+      area: b.area,
+      phone: b.phone,
+      availability: 'রক্তদানে প্রস্তুত (Emergency Ready)',
+    }));
+  }
 
   // Format Diagnostic Tests
   const formattedTests = diagnosticTests.map((t) => ({
