@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/auth';
 import { FALLBACK_DONORS } from '@/lib/staticHospitalData';
 
 export async function GET(request: Request) {
@@ -8,6 +9,10 @@ export async function GET(request: Request) {
     const bloodGroup = searchParams.get('bloodGroup');
     const area = searchParams.get('area');
     const q = searchParams.get('q');
+
+    // Check if requester is logged in
+    const session = await getSession().catch(() => null);
+    const isAuthenticated = Boolean(session);
 
     let donors: any[] = [];
 
@@ -75,7 +80,32 @@ export async function GET(request: Request) {
       });
     }
 
-    return NextResponse.json({ success: true, count: donors.length, donors });
+    // Privacy Protection: Mask phone numbers for visitors who are not logged in
+    const processedDonors = donors.map((donor) => {
+      if (isAuthenticated) {
+        return {
+          ...donor,
+          isPhoneMasked: false,
+        };
+      } else {
+        const rawPhone = donor.phone || '01XXXXXXXXX';
+        const masked = rawPhone.length >= 11
+          ? rawPhone.slice(0, 3) + '••••••' + rawPhone.slice(-2)
+          : '017•••••XXX';
+        return {
+          ...donor,
+          phone: masked,
+          isPhoneMasked: true,
+        };
+      }
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      count: processedDonors.length, 
+      isAuthenticated,
+      donors: processedDonors 
+    });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Failed to fetch blood donors' },

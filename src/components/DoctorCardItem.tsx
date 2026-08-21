@@ -90,7 +90,7 @@ export default function DoctorCardItem({ doc, ALL_WEEK_DAYS, availableDayNamesSe
             </span>
             <div className="grid grid-cols-7 gap-1 text-center pt-0.5">
               {ALL_WEEK_DAYS.map((day) => {
-                const isAvailable = availableDayNamesSet.has(day.full);
+                const isAvailable = availableDayNamesSet.has(day.full) || availableDayNamesSet.has(day.short);
                 const dayBn = BANGLA_DAYS_MAP[day.short] || day.short;
                 return (
                   <span
@@ -109,34 +109,30 @@ export default function DoctorCardItem({ doc, ALL_WEEK_DAYS, availableDayNamesSe
             </div>
           </div>
 
+          {/* Fee & Experience Row */}
           <div className="pt-2.5 border-t border-slate-200/70 flex justify-between font-bold text-xs text-slate-700">
             <span>ভিজিট ফি: <strong className="text-sky-700 font-black">৳{doc.consultationFee} টাকা</strong></span>
             <span>অভিজ্ঞতা: <strong className="text-nuvicaNavy-900 font-black">{doc.experienceYears} বছর</strong></span>
           </div>
         </div>
 
-        {/* Expandable Accordion Toggle Button */}
+        {/* Expandable Accordion: Experience & Treated Diseases */}
         <button
           type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setShowDetails((prev) => !prev);
-          }}
-          className={`w-full py-2.5 px-3.5 rounded-2xl transition-all duration-300 border text-xs font-bold tracking-wide cursor-pointer flex items-center justify-between shadow-2xs hover:shadow-sm active:scale-[0.98] select-none ${
-            showDetails
-              ? 'bg-sky-600 text-white border-sky-600 shadow-sky-600/20'
-              : 'bg-sky-50/90 hover:bg-sky-100 text-sky-800 border-sky-200/80'
-          }`}
+          onClick={() => setShowDetails(!showDetails)}
+          className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-sky-50/70 hover:bg-sky-100 text-sky-800 text-xs font-bold transition-colors cursor-pointer border border-sky-100"
         >
-          <span className="flex items-center gap-1.5 tracking-wide">
-            <Info className={`w-3.5 h-3.5 transition-colors duration-300 ${showDetails ? 'text-white' : 'text-sky-600'}`} />
+          <span className="flex items-center gap-1.5 tracking-wide font-bold">
+            <Info className="w-3.5 h-3.5 text-sky-600" />
             অভিজ্ঞতা ও চিকিৎসাসমূহ
           </span>
-          <ChevronDown className={`w-4 h-4 transition-transform duration-300 ease-out ${showDetails ? 'rotate-180 text-white' : 'text-sky-600'}`} />
+          <ChevronDown
+            className={`w-4 h-4 text-sky-600 transition-transform duration-300 ${
+              showDetails ? 'rotate-180' : ''
+            }`}
+          />
         </button>
 
-        {/* Expandable Bio & Treated Diseases Content */}
         {showDetails && (
           <div className="pt-2.5 space-y-3.5 border-t border-slate-100 text-xs animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="space-y-1">
@@ -183,7 +179,7 @@ export default function DoctorCardItem({ doc, ALL_WEEK_DAYS, availableDayNamesSe
         )}
       </div>
 
-      {/* Direct Phone Call CTA Button */}
+      {/* Direct Phone Call CTA Button (Normal direct calling for all users) */}
       <a
         href={`tel:${doc.phone || doc.hospital?.phone || '+88076162588'}`}
         className="w-full btn-nuvica-primary text-xs sm:text-sm font-bold tracking-wide !py-3 justify-center rounded-2xl shadow-xs cursor-pointer flex items-center gap-2"

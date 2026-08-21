@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Ambulance,
   MapPin,
+  Lock,
 } from 'lucide-react';
 
 function AestheticAssistantIcon({ className = 'w-5 h-5' }: { className?: string }) {
@@ -116,6 +117,17 @@ export default function AiAssistantChat() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) setIsLoggedIn(true);
+        else setIsLoggedIn(false);
+      })
+      .catch(() => setIsLoggedIn(false));
+  }, [isOpen]);
 
   function formatTime(date: Date) {
     return date.toLocaleTimeString('bn-BD', {
@@ -595,13 +607,24 @@ export default function AiAssistantChat() {
                               <span className="break-words min-w-0">{donor.address || donor.area}</span>
                             </div>
 
-                            <a
-                              href={`tel:${donor.phone}`}
-                              className="w-full flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold py-2.5 px-3 rounded-xl transition-colors shadow-2xs truncate"
-                            >
-                              <PhoneCall className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">Call Donor ({donor.phone})</span>
-                            </a>
+                            {isLoggedIn ? (
+                              <a
+                                href={`tel:${donor.phone}`}
+                                className="w-full flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold py-2.5 px-3 rounded-xl transition-colors shadow-2xs truncate"
+                              >
+                                <PhoneCall className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">Call Donor ({donor.phone})</span>
+                              </a>
+                            ) : (
+                              <Link
+                                href="/login?redirect=/blood"
+                                onClick={() => setIsOpen(false)}
+                                className="w-full flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold py-2.5 px-3 rounded-xl transition-colors shadow-2xs truncate"
+                              >
+                                <PhoneCall className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">Call Donor ({donor.phone})</span>
+                              </Link>
+                            )}
                           </div>
                         ))}
                       </div>

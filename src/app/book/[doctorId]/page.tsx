@@ -23,6 +23,7 @@ import {
   UserCheck,
   ChevronDown
 } from 'lucide-react';
+import LoginPromptModal from '@/components/LoginPromptModal';
 
 const DAYS_MAP = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -47,6 +48,8 @@ export default function AppointmentBookingPage() {
   const [doctor, setDoctor] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
@@ -71,6 +74,14 @@ export default function AppointmentBookingPage() {
     const today = new Date();
     const formattedDate = today.toISOString().split('T')[0];
     setSelectedDate(formattedDate);
+
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) setIsLoggedIn(true);
+        else setIsLoggedIn(false);
+      })
+      .catch(() => setIsLoggedIn(false));
   }, []);
 
   // Fetch Doctor Profile & Schedules
@@ -381,7 +392,7 @@ export default function AppointmentBookingPage() {
 
               <a
                 href={`tel:${doctorPhoneRaw}`}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2.5 text-sm block text-center"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2.5 text-sm block text-center cursor-pointer"
               >
                 <Phone className="w-5 h-5 inline-block" />
                 সিরিয়ালের জন্য কল করুন ({doctorPhoneRaw})

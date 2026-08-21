@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -27,6 +27,7 @@ import {
   RefreshCw,
   RotateCcw
 } from 'lucide-react';
+import LoginPromptModal from '@/components/LoginPromptModal';
 
 export interface HospitalItem {
   id: string;
@@ -101,6 +102,18 @@ export default function HospitalsClientView({
   const [sortBy, setSortBy] = useState<'featured' | 'doctors' | 'name' | 'type'>('featured');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) setIsLoggedIn(true);
+        else setIsLoggedIn(false);
+      })
+      .catch(() => setIsLoggedIn(false));
+  }, []);
 
   // Manual router refresh call
   const handleRefresh = () => {
@@ -401,7 +414,7 @@ export default function HospitalsClientView({
                       {hospital.phone ? (
                         <a
                           href={`tel:${hospital.phone}`}
-                          className="relative w-full py-2.5 px-3 rounded-2xl bg-white hover:bg-sky-50 text-sky-700 hover:text-sky-900 border border-sky-200/90 hover:border-sky-400 text-xs font-extrabold shadow-2xs hover:shadow-md hover:shadow-sky-500/15 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300 ease-out flex items-center justify-center gap-1.5 overflow-hidden group/btn"
+                          className="relative w-full py-2.5 px-3 rounded-2xl bg-white hover:bg-sky-50 text-sky-700 hover:text-sky-900 border border-sky-200/90 hover:border-sky-400 text-xs font-extrabold shadow-2xs hover:shadow-md hover:shadow-sky-500/15 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300 ease-out flex items-center justify-center gap-1.5 overflow-hidden group/btn cursor-pointer"
                           title={`সরাসরি জরুরি ফোন: ${hospital.phone}`}
                         >
                           {/* Light Shimmer Glare */}

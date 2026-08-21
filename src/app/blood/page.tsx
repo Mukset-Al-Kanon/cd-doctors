@@ -58,6 +58,7 @@ export default function BloodDonorDirectoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [showLoginRequiredModal, setShowLoginRequiredModal] = useState(false);
+  const [loginModalReason, setLoginModalReason] = useState<'register' | 'call'>('call');
   const [isClosingLoginModal, setIsClosingLoginModal] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserSessionInfo | null>(null);
   const [togglingAvailability, setTogglingAvailability] = useState(false);
@@ -130,8 +131,15 @@ export default function BloodDonorDirectoryPage() {
     if (currentUser) {
       setIsRegisterModalOpen(true);
     } else {
+      setLoginModalReason('register');
       setShowLoginRequiredModal(true);
     }
+  };
+
+  const handleCallLockClick = () => {
+    setIsClosingLoginModal(false);
+    setLoginModalReason('call');
+    setShowLoginRequiredModal(true);
   };
 
   const fetchDonors = async () => {
@@ -475,34 +483,61 @@ export default function BloodDonorDirectoryPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-sky-700 shrink-0" />
-                        <span className="font-bold text-nuvicaNavy-900">{donor.phone}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Phone className={`w-4 h-4 shrink-0 ${currentUser ? 'text-sky-700' : 'text-slate-400'}`} />
+                          <span className={`font-bold truncate ${currentUser ? 'text-nuvicaNavy-900' : 'text-slate-500 tracking-wider select-none'}`}>
+                            {currentUser ? donor.phone : '017•••••XXX'}
+                          </span>
+                        </div>
+
+                        {!currentUser && (
+                          <button
+                            type="button"
+                            onClick={handleCallLockClick}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 hover:text-sky-800 bg-sky-100/90 hover:bg-sky-200/90 px-2 py-0.5 rounded-lg border border-sky-200/80 transition-colors shrink-0 cursor-pointer"
+                          >
+                            <Lock className="w-3 h-3 text-sky-600" />
+                            লগইন
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Call Button */}
-                  <a
-                    href={`tel:${donor.phone}`}
-                    className={`relative group/btn w-full inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-full font-extrabold text-xs sm:text-sm tracking-wide transition-all duration-300 ease-out overflow-hidden cursor-pointer ${
-                      isAvailable
-                        ? 'bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-700 hover:via-rose-600 hover:to-red-700 text-white shadow-sm hover:shadow-md shadow-rose-600/15 hover:shadow-rose-600/25 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] border border-rose-400/30'
-                        : 'bg-slate-200 text-slate-500 hover:bg-slate-300 cursor-not-allowed border border-slate-300/60'
-                    }`}
-                  >
-                    {/* Light Reflection Glare Sweep */}
-                    {isAvailable && (
-                      <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-1000 ease-in-out pointer-events-none" />
-                    )}
+                  {/* Call Button (Original Red Gradient Design with Auth Modal Trigger) */}
+                  {currentUser ? (
+                    <a
+                      href={isAvailable ? `tel:${donor.phone}` : undefined}
+                      className={`relative group/btn w-full inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-full font-extrabold text-xs sm:text-sm tracking-wide transition-all duration-300 ease-out overflow-hidden cursor-pointer ${
+                        isAvailable
+                          ? 'bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-700 hover:via-rose-600 hover:to-red-700 text-white shadow-sm hover:shadow-md shadow-rose-600/15 hover:shadow-rose-600/25 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] border border-rose-400/30'
+                          : 'bg-slate-200 text-slate-500 hover:bg-slate-300 cursor-not-allowed border border-slate-300/60'
+                      }`}
+                    >
+                      {/* Light Reflection Glare Sweep */}
+                      {isAvailable && (
+                        <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-1000 ease-in-out pointer-events-none" />
+                      )}
 
-                    {/* Micro-animated Phone Icon */}
-                    <Phone className={`w-4 h-4 fill-current shrink-0 transition-transform duration-300 ${
-                      isAvailable ? 'group-hover/btn:-rotate-12 group-hover/btn:scale-110 text-white' : 'text-slate-400'
-                    }`} />
-                    
-                    <span className="relative z-10">Call Donor</span>
-                  </a>
+                      {/* Micro-animated Phone Icon */}
+                      <Phone className={`w-4 h-4 fill-current shrink-0 transition-transform duration-300 ${
+                        isAvailable ? 'group-hover/btn:-rotate-12 group-hover/btn:scale-110 text-white' : 'text-slate-400'
+                      }`} />
+                      
+                      <span className="relative z-10">Call Donor</span>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleCallLockClick}
+                      className="relative group/btn w-full inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-full font-extrabold text-xs sm:text-sm tracking-wide bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-700 hover:via-rose-600 hover:to-red-700 text-white shadow-sm hover:shadow-md shadow-rose-600/15 hover:shadow-rose-600/25 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] border border-rose-400/30 transition-all duration-300 ease-out overflow-hidden cursor-pointer"
+                    >
+                      <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-1000 ease-in-out pointer-events-none" />
+                      <Phone className="w-4 h-4 fill-current shrink-0 text-white group-hover/btn:-rotate-12 group-hover/btn:scale-110 transition-transform duration-300" />
+                      <span className="relative z-10">Call Donor</span>
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -557,10 +592,14 @@ export default function BloodDonorDirectoryPage() {
             {/* Modal Title & Message */}
             <div className="space-y-2 font-bengali">
               <h3 className="text-xl sm:text-2xl font-extrabold text-nuvicaNavy-900 tracking-tight">
-                Login Required to Register
+                {loginModalReason === 'call'
+                  ? 'রক্তদাতার নম্বরের জন্য লগইন করুন'
+                  : 'রক্তদাতা নিবন্ধনের জন্য লগইন করুন'}
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
-                প্রিয় ব্যবহারকারী, চুয়াডাঙ্গায় রক্তদাতাদের সঠিক তথ্য নিশ্চিতকরণ ও আমাদের স্বাস্থ্যসেবা কমিউনিটির নিরাপত্তা রক্ষার স্বার্থে, রক্তদাতা হিসেবে নিবন্ধন করার পূর্বে CD Doctors-এ লগইন অথবা নতুন অ্যাকাউন্ট তৈরি করা আবশ্যক।
+                {loginModalReason === 'call'
+                  ? 'রক্তদাতার গোপনীয়তা ও নিরাপত্তা সুরক্ষার্থে মোবাইল নম্বর দেখতে এবং সরাসরি কল করতে অনুগ্রহ করে আপনার পেশেন্ট একাউন্টে লগইন করুন বা মাত্র ১ মিনিটে ফ্রি সাইন-আপ করুন।'
+                  : 'প্রিয় ব্যবহারকারী, চুয়াডাঙ্গায় রক্তদাতাদের সঠিক তথ্য নিশ্চিতকরণ ও আমাদের স্বাস্থ্যসেবা কমিউনিটির নিরাপত্তা রক্ষার স্বার্থে, রক্তদাতা হিসেবে নিবন্ধন করার পূর্বে CD Doctors-এ লগইন অথবা নতুন অ্যাকাউন্ট তৈরি করা আবশ্যক।'}
               </p>
             </div>
 
@@ -574,12 +613,16 @@ export default function BloodDonorDirectoryPage() {
                 বাতিল করুন
               </button>
               <a
-                href="/login?redirect=/blood?openDonorModal=true"
+                href={
+                  loginModalReason === 'call'
+                    ? '/login?redirect=/blood'
+                    : '/login?redirect=/blood?openDonorModal=true'
+                }
                 className="w-full sm:w-1/2 relative group/btn inline-flex items-center justify-center gap-2 py-3 px-4 rounded-full bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 hover:from-sky-700 hover:to-sky-600 text-white text-xs font-extrabold shadow-md hover:shadow-lg hover:shadow-sky-500/25 active:scale-[0.97] transition-all duration-300 overflow-hidden touch-manipulation"
               >
                 <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 ease-in-out pointer-events-none" />
                 <LogIn className="w-4 h-4 z-10" /> 
-                <span className="z-10">লগইন / রেজিস্টার</span>
+                <span className="z-10">লগইন / সাইন-আপ</span>
               </a>
             </div>
           </div>

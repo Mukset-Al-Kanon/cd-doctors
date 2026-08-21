@@ -1,29 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { db } from '@/lib/db';
-import { 
-  PhoneCall, 
-  ShieldAlert, 
-  HeartPulse, 
-  Building2, 
-  Truck, 
-  Droplet, 
-  Sparkles, 
-  Flame, 
-  Phone
-} from 'lucide-react';
+import { ShieldAlert, PhoneCall } from 'lucide-react';
+import EmergencyHelplinesList from '@/components/EmergencyHelplinesList';
 
 export const revalidate = 0;
-
-const ICON_MAP: Record<string, any> = {
-  ShieldAlert,
-  Building2,
-  HeartPulse,
-  Droplet,
-  Truck,
-  Flame,
-  PhoneCall,
-};
 
 const DEFAULT_HOTLINES = [
   {
@@ -128,53 +109,12 @@ export default async function EmergencyPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-rose-600" /> Direct Emergency Helplines
+            Direct Emergency Helplines
           </h2>
           <span className="text-[11px] font-bold text-slate-400">Click button to call directly</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayHelplines.map((h) => {
-            const Icon = ICON_MAP[h.icon] || PhoneCall;
-            return (
-              <div
-                key={h.id}
-                className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all duration-300 flex flex-col justify-between space-y-5 group"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold shadow-2xs">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full border bg-slate-50 text-slate-700 border-slate-200">
-                      {h.badge}
-                    </span>
-                  </div>
-
-                  <div className="space-y-1">
-                    <h3 className="font-black text-base text-nuvicaNavy-900 leading-snug group-hover:text-sky-700 transition-colors">
-                      {h.title}
-                    </h3>
-                    <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                      {h.desc}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Call Button */}
-                <a
-                  href={`tel:${h.number}`}
-                  className="w-full inline-flex items-center justify-center gap-2.5 bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs py-3 px-5 rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.02] active:scale-95 border border-sky-500"
-                >
-                  <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                    <PhoneCall className="w-3 h-3 text-white" />
-                  </div>
-                  <span className="tracking-wide">Call {h.number}</span>
-                </a>
-              </div>
-            );
-          })}
-        </div>
+        <EmergencyHelplinesList helplines={displayHelplines} />
       </div>
     </div>
   );
