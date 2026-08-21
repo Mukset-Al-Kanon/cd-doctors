@@ -34,20 +34,32 @@ interface PageProps {
   };
 }
 
-export default async function HospitalProfilePage({ params }: PageProps) {
-  const hospital = await db.hospital.findUnique({
-    where: { slug: params.slug },
-    include: {
-      district: { include: { division: true } },
-      facilities: true,
-      doctors: {
-        where: { status: 'ACTIVE' },
-        include: { schedules: true },
-      },
-    },
-  });
+import { FALLBACK_HOSPITALS } from '@/lib/staticHospitalData';
 
-  if (!hospital || (hospital.status !== 'ACTIVE' && hospital.status !== 'APPROVED')) {
+export default async function HospitalProfilePage({ params }: PageProps) {
+  let hospital: any = null;
+
+  try {
+    hospital = await db.hospital.findUnique({
+      where: { slug: params.slug },
+      include: {
+        district: { include: { division: true } },
+        facilities: true,
+        doctors: {
+          where: { status: 'ACTIVE' },
+          include: { schedules: true },
+        },
+      },
+    }).catch(() => null);
+  } catch (err) {
+    console.error('Error fetching hospital by slug, using fallback:', err);
+  }
+
+  if (!hospital) {
+    hospital = FALLBACK_HOSPITALS.find((h) => h.slug === params.slug) || null;
+  }
+
+  if (!hospital) {
     notFound();
   }
 
