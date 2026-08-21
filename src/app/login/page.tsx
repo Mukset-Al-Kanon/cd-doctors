@@ -107,13 +107,22 @@ export default function UserLoginPage() {
     setSuccessMessage('');
 
     if (!name.trim()) {
-      setErrorMessage('অনুগ্রহ করে আপনার পুরো নাম লিখুন।');
+      setErrorMessage('অনুগ্রহ করে আপনার পুরো নাম প্রদান করুন।');
       setLoading(false);
       return;
     }
 
-    if (!email.trim()) {
-      setErrorMessage('অনুগ্রহ করে আপনার ইমেইল ঠিকানা দিন।');
+    const emailTrimmed = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailTrimmed || !emailRegex.test(emailTrimmed)) {
+      setErrorMessage('অনুগ্রহ করে একটি সঠিক ইমেইল অ্যাড্রেস দিন (যেমন: yourname@gmail.com)।');
+      setLoading(false);
+      return;
+    }
+
+    // Check common typo
+    if (emailTrimmed.endsWith('@gamil.com') || emailTrimmed.endsWith('@gmial.com')) {
+      setErrorMessage('ইমেইলে বানান ভুল রয়েছে (@gmail.com হবে)। অনুগ্রহ করে সংশোধন করুন।');
       setLoading(false);
       return;
     }

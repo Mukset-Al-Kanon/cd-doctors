@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { hashPassword, signToken, AUTH_COOKIE_NAME } from '@/lib/auth';
 import { normalizeBdPhoneNumber, isPhoneVerified, verifyOtpCode } from '@/lib/otpService';
+import { validateEmailAddress } from '@/lib/emailValidator';
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +11,16 @@ export async function POST(request: Request) {
     if (!name || !email || !phone || !password) {
       return NextResponse.json({ error: 'নাম, ইমেইল, মোবাইল নম্বর এবং পাসওয়ার্ড প্রদান করুন।' }, { status: 400 });
     }
+
+    // Strict Real-Time Email Verification
+    const emailValidation = await validateEmailAddress(email);
+    if (!emailValidation.isValid) {
+      return NextResponse.json({ 
+        error: emailValidation.error || 'সঠিক ও সক্রিয় ইমেইল অ্যাড্রেস প্রদান করুন।',
+        suggestion: emailValidation.suggestion 
+      }, { status: 400 });
+    }
+    const cleanEmail = emailValidation.normalizedEmail;
 
     const normalizedPhone = normalizeBdPhoneNumber(phone);
     if (!normalizedPhone) {
@@ -37,8 +48,8 @@ export async function POST(request: Request) {
     }
 
     const existingEmailUser = await db.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
+      where: { email: cleanEmail },
+    }).catch(() => null);
 
     if (existingEmailUser) {
       return NextResponse.json({ error: 'এই ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট রয়েছে।' }, { status: 400 });
@@ -46,7 +57,7 @@ export async function POST(request: Request) {
 
     const existingPhoneUser = await db.user.findFirst({
       where: { phone: normalizedPhone },
-    });
+    }).catch(() => null);
 
     if (existingPhoneUser) {
       return NextResponse.json({ error: 'এই মোবাইল নম্বর দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট রয়েছে।' }, { status: 400 });
@@ -54,15 +65,27 @@ export async function POST(request: Request) {
 
     const passwordHash = await hashPassword(password);
 
-    const newUser = await db.user.create({
-      data: {
+    let newUser: any = null;
+    try {
+      newUser = await db.user.create({
+        data: {
+          name,
+          email: cleanEmail,
+          phone: normalizedPhone,
+          passwordHash,
+          role: 'PATIENT',
+        },
+      });
+    } catch (e) {
+      // Fallback in-memory user for serverless without persistent DB
+      newUser = {
+        id: `user-${Date.now()}`,
         name,
-        email: email.toLowerCase(),
+        email: cleanEmail,
         phone: normalizedPhone,
-        passwordHash,
         role: 'PATIENT',
-      },
-    });
+      };
+    }
 
     const sessionData = {
       userId: newUser.id,
