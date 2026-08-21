@@ -81,11 +81,12 @@ export async function generateAndSendOtp(phone: string): Promise<{ success: bool
   }
 
   // Send Real SMS via SMS.NET.BD (Alpha SMS Gateway)
+  const isMockSms = process.env.MOCK_SMS_GATEWAY === 'true' || process.env.NODE_ENV === 'test';
   const smsApiKey = process.env.SMS_API_KEY;
   const smsSenderId = process.env.SMS_SENDER_ID || '';
   const smsText = `CD Doctors: আপনার ওটিপি ভেরিফিকেশন কোড হলো ${code}। মেয়াদ ৫ মিনিট।`;
 
-  if (smsApiKey && smsApiKey.trim().length > 0) {
+  if (!isMockSms && smsApiKey && smsApiKey.trim().length > 0) {
     try {
       const recipientNumber = normalizedPhone.startsWith('880') ? normalizedPhone : '88' + normalizedPhone;
 

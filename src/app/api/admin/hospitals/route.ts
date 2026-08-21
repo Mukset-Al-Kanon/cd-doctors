@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
+    await requireAuth(['SUPER_ADMIN', 'OWNER_ADMIN', 'HOSPITAL_ADMIN', 'HOSPITAL_STAFF']);
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q') || '';
 
@@ -28,15 +30,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ hospitals });
   } catch (error: any) {
     console.error('Error fetching admin hospitals:', error);
-    return NextResponse.json({ error: 'Failed to fetch hospital records' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Unauthorized or Failed to fetch hospital records' }, { status: error.status || 401 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const userHeader = request.headers.get('x-user');
-    const userRoleHeader = request.headers.get('x-user-role');
-    const isOwnerAdmin = userHeader === 'OWNER_ADMIN' || userRoleHeader === 'SUPER_ADMIN' || userRoleHeader === 'ADMIN';
+    await requireAuth(['SUPER_ADMIN', 'OWNER_ADMIN']);
 
     const body = await request.json();
     const {

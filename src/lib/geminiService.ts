@@ -32,7 +32,7 @@ export interface ProcessGeminiResponse {
   emergencyServices?: EmergencyServiceResultItem[];
 }
 
-export const CURRENT_PRODUCTION_GEMINI_MODEL = 'gemini-2.5-flash';
+export const CURRENT_PRODUCTION_GEMINI_MODEL = 'gemini-3.6-flash';
 export const OFFICIAL_GEMINI_SDK = '@google/genai';
 
 const GEMINI_SYSTEM_INSTRUCTIONS = `

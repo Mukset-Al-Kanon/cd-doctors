@@ -40,3 +40,9 @@ node.exe
 /npx.ps1
 /corepack
 /corepack.cmd
+
+# test & strix security scan artifacts
+strix_runs/
+*.sarif
+*.db
+.env.test
