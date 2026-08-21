@@ -389,7 +389,7 @@ export default function LoginPage() {
                     : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                লগইন (Login)
+                লগইন
               </button>
               <button
                 type="button"
@@ -404,7 +404,7 @@ export default function LoginPage() {
                     : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                সাইন-আপ (Sign Up)
+                সাইন-আপ
               </button>
             </div>
           )}
@@ -580,7 +580,7 @@ export default function LoginPage() {
                 ) : (
                   <>
                     <Phone className="w-4 h-4" />
-                    <span>ওটিপি কোড পাঠান (Send OTP)</span>
+                    <span>ওটিপি কোড পাঠান</span>
                   </>
                 )}
               </button>
@@ -640,7 +640,7 @@ export default function LoginPage() {
                     onClick={(e) => handleSendRegistrationOtp(e)}
                     className="text-sky-600 hover:text-sky-700 font-bold"
                   >
-                    পুনরায় কোড পাঠান (Resend)
+                    পুনরায় কোড পাঠান
                   </button>
                 ) : (
                   <span className="text-slate-400">
