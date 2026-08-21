@@ -352,23 +352,36 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         
         {/* Brand Header */}
-        <div className="text-center space-y-2">
-          <Link href="/" className="inline-flex items-center gap-2 group">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-600 to-sky-400 flex items-center justify-center text-white shadow-lg shadow-sky-500/20 group-hover:scale-105 transition-transform duration-300">
-              <Building2 className="w-6 h-6" />
+        <div className="text-center space-y-3">
+          <Link href="/" className="inline-flex items-center justify-center gap-3 group">
+            <img
+              src="/logo.png"
+              alt="CD Doctors Logo"
+              width="48"
+              height="48"
+              className="w-12 h-12 rounded-full object-cover shadow-md group-hover:scale-105 transition-transform duration-300 shrink-0 border border-white"
+            />
+            <div className="text-left">
+              <div className="font-black text-2xl sm:text-[26px] text-nuvicaNavy-900 tracking-tight leading-none">
+                CD <span className="text-nuvicaNavy-800">Doctors</span>
+                <span className="inline-block w-2 h-2 rounded-full bg-sky-500 ml-1"></span>
+              </div>
+              <div className="text-[10px] font-extrabold text-sky-700 tracking-wider uppercase mt-1">
+                Digital Healthcare Platform
+              </div>
             </div>
-            <span className="text-2xl font-black text-nuvicaNavy-900 tracking-tight">
-              CD Doctors
-            </span>
           </Link>
-          <h2 className="text-xl sm:text-2xl font-black text-nuvicaNavy-900 tracking-tight font-noto-bengali-heading">
-            {activeTab === 'LOGIN' && 'মোবাইল নম্বর দিয়ে লগইন'}
-            {activeTab === 'REGISTER' && 'নতুন পেশেন্ট একাউন্ট তৈরি করুন'}
-            {activeTab === 'FORGOT_PASSWORD' && 'পাসওয়ার্ড রিসেট করুন'}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium">
-            চুয়াডাঙ্গা ডিজিটাল হেলথকেয়ার প্ল্যাটফর্ম
-          </p>
+
+          <div className="space-y-1 pt-1">
+            <h2 className="text-xl sm:text-2xl font-black text-nuvicaNavy-900 tracking-tight font-noto-bengali-heading">
+              {activeTab === 'LOGIN' && 'অ্যাকাউন্টে প্রবেশ করুন'}
+              {activeTab === 'REGISTER' && 'নতুন পেশেন্ট অ্যাকাউন্ট তৈরি করুন'}
+              {activeTab === 'FORGOT_PASSWORD' && 'পাসওয়ার্ড পুনরুদ্ধার করুন'}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+              চুয়াডাঙ্গার হাসপাতাল, বিশেষজ্ঞ ডাক্তার ও জরুরি স্বাস্থ্যসেবা
+            </p>
+          </div>
         </div>
 
         {/* Auth Box Container */}
