@@ -8,21 +8,33 @@ import StatCards from '@/components/StatCards';
 export const revalidate = 0;
 
 export default async function HomePage() {
-  const [registeredHospitals, doctorCount, bloodDonorCount] = await Promise.all([
-    db.hospital.findMany({
-      where: {
-        status: { in: ['ACTIVE', 'APPROVED'] },
-        district: { slug: 'chuadanga' },
-      },
-      include: {
-        facilities: true,
-        _count: { select: { doctors: true } },
-      },
-      orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
-    }),
-    db.doctor.count().catch(() => 0),
-    db.bloodDonor.count().catch(() => 0),
-  ]);
+  let registeredHospitals: any[] = [];
+  let doctorCount = 0;
+  let bloodDonorCount = 0;
+
+  try {
+    const [hospitals, dCount, bCount] = await Promise.all([
+      db.hospital.findMany({
+        where: {
+          status: { in: ['ACTIVE', 'APPROVED'] },
+          district: { slug: 'chuadanga' },
+        },
+        include: {
+          facilities: true,
+          _count: { select: { doctors: true } },
+        },
+        orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+      }).catch(() => []),
+      db.doctor.count().catch(() => 0),
+      db.bloodDonor.count().catch(() => 0),
+    ]);
+
+    registeredHospitals = hospitals || [];
+    doctorCount = dCount || 0;
+    bloodDonorCount = bCount || 0;
+  } catch (err) {
+    console.error('Error fetching homepage data:', err);
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50/70 via-sky-50/30 to-slate-50/60 space-y-16 lg:space-y-[96px] pb-16 lg:pb-[96px]">
