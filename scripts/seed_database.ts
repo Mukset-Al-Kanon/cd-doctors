@@ -1,12 +1,17 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const prisma = new PrismaClient();
 
-async function main() {
-  console.log('🌱 Starting database seed for CD Doctors (Chuadanga District Platform)...');
+async function runSeed() {
+  console.log('🚀 [CD Doctors] Running Central Database Seeder & Data Sync...');
 
-  // Clean existing tables thoroughly
+  // 1. Verify connection
+  await prisma.$connect();
+  console.log('✅ Connected to Database.');
+
+  // Clean and prepare tables
   await prisma.testAvailability.deleteMany();
   await prisma.diagnosticTest.deleteMany();
   await prisma.emergencyHelpline.deleteMany();
@@ -25,10 +30,10 @@ async function main() {
   await prisma.district.deleteMany();
   await prisma.division.deleteMany();
 
-  console.log('✅ Cleared all previous doctor records, appointments, and hospital data.');
+  console.log('🧹 Purged previous database tables.');
 
-  // 1. Seed Khulna Division & Chuadanga District
-  const divKhulna = await prisma.division.create({
+  // 2. Division & District
+  const division = await prisma.division.create({
     data: {
       nameEn: 'Khulna',
       nameBn: 'খুলনা',
@@ -36,53 +41,51 @@ async function main() {
     },
   });
 
-  const distChuadanga = await prisma.district.create({
+  const district = await prisma.district.create({
     data: {
-      divisionId: divKhulna.id,
+      divisionId: division.id,
       nameEn: 'Chuadanga',
       nameBn: 'চুয়াডাঙ্গা',
       slug: 'chuadanga',
     },
   });
 
-  console.log('✅ Created Chuadanga District location record.');
+  console.log(`📍 Created Location: ${district.nameEn} (${district.nameBn}) under ${division.nameEn}`);
 
-  // 2. Admin Credentials
-  const superAdminPassword = await bcrypt.hash('admin123', 10);
-
+  // 3. Admin Account
+  const bcrypt = await import('bcryptjs');
+  const passwordHash = await bcrypt.default.hash('admin123', 10);
   await prisma.user.create({
     data: {
       name: 'CD Doctors Owner Admin',
       email: 'admin@cddoctors.com',
-      passwordHash: superAdminPassword,
+      passwordHash,
       role: 'SUPER_ADMIN',
     },
   });
-  console.log('✅ Created Owner Admin (admin@cddoctors.com / admin123)');
 
-  // 3. Seed Chuadanga Hospitals (5 Premier Hospitals) with 6 Unique Doctors Each (30 Doctors Total)
-  const hospitalsWithUniqueDoctors = [
+  // 4. Hospitals and 30 Doctors Dataset
+  const hospitals = [
     {
-      hospital: {
-        name: 'Evercare Hospital Chuadanga',
-        slug: 'evercare-hospital-chuadanga',
-        districtId: distChuadanga.id,
-        hospitalType: 'Super Specialty Hospital',
-        status: 'ACTIVE',
-        isFeatured: true,
-        address: 'Station Road, Chuadanga Sadar, Chuadanga',
-        phone: '+880 761-62588',
-        emergencyPhone: '10663',
-        email: 'info.chuadanga@evercarebd.com',
-        website: 'https://www.evercarebd.com/chuadanga/',
-        establishedYear: 2021,
-        description: 'Evercare Hospital Chuadanga is a 470-bed multi-disciplinary super-specialty tertiary care hospital in Chuadanga District featuring state-of-the-art emergency care, 24/7 ICU support, advanced cath lab, and international standard surgical suites.',
-        latitude: 23.644,
-        longitude: 88.8556,
-        logoUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=300&auto=format&fit=crop&q=80',
-        coverUrl: 'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&auto=format&fit=crop&q=80',
-        licenseNumber: 'REG-CDG-2021-9901',
-      },
+      name: 'Evercare Hospital Chuadanga',
+      slug: 'evercare-hospital-chuadanga',
+      districtId: district.id,
+      hospitalType: 'Super Specialty Hospital',
+      status: 'ACTIVE',
+      isFeatured: true,
+      address: 'Station Road, Chuadanga Sadar, Chuadanga',
+      phone: '+880 761-62588',
+      emergencyPhone: '10663',
+      email: 'info.chuadanga@evercarebd.com',
+      website: 'https://www.evercarebd.com/chuadanga/',
+      establishedYear: 2021,
+      description: 'Evercare Hospital Chuadanga is a 470-bed multi-disciplinary super-specialty tertiary care hospital in Chuadanga District featuring 24/7 ICU, advanced cath lab, and international standard surgical suites.',
+      latitude: 23.644,
+      longitude: 88.8556,
+      logoUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=300&auto=format&fit=crop&q=80',
+      coverUrl: 'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&auto=format&fit=crop&q=80',
+      licenseNumber: 'REG-CDG-2021-9901',
+      facilities: ['24/7 Emergency & Trauma Center', 'ICU & CCU Intensive Support', 'Outdoor Specialist Chamber', 'Digital Radiology & MRI', '24 Hours Pharmacy'],
       doctors: [
         {
           name: 'Dr. Mahbubur Rahman Chowdhury',
@@ -97,7 +100,7 @@ async function main() {
           chamberRoom: 'Block A, 4th Floor, Suite 402',
           phone: '+880 1711-209841',
           photoUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80',
-          bio: 'Dr. Mahbubur Rahman Chowdhury is a senior interventional cardiologist with over 18 years of specialized experience in coronary angioplasty, heart failure management, and acute cardiac care at Evercare Hospital Chuadanga.',
+          bio: 'Dr. Mahbubur Rahman Chowdhury is a senior interventional cardiologist with over 18 years of specialized experience in coronary angioplasty, heart failure management, and acute cardiac care.',
         },
         {
           name: 'Dr. Selina Parveen',
@@ -177,23 +180,22 @@ async function main() {
       ],
     },
     {
-      hospital: {
-        name: 'Chuadanga Medical Center',
-        slug: 'chuadanga-medical-center',
-        districtId: distChuadanga.id,
-        hospitalType: 'Private Hospital',
-        status: 'ACTIVE',
-        isFeatured: true,
-        address: 'Court Road, Chuadanga Sadar, Chuadanga',
-        phone: '+880 761-63105',
-        emergencyPhone: '+880 761-63106',
-        email: 'info@chuadangamedicalcenter.com',
-        establishedYear: 1998,
-        description: 'Chuadanga Medical Center is one of the premier private hospitals in Chuadanga Sadar, offering expert specialist outdoor chambers, 24/7 diagnostic labs, maternity care, and emergency cardiac support.',
-        logoUrl: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=300&auto=format&fit=crop&q=80',
-        coverUrl: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?w=1200&auto=format&fit=crop&q=80',
-        licenseNumber: 'REG-CDG-1998-4412',
-      },
+      name: 'Chuadanga Medical Center',
+      slug: 'chuadanga-medical-center',
+      districtId: district.id,
+      hospitalType: 'Private Hospital',
+      status: 'ACTIVE',
+      isFeatured: true,
+      address: 'Court Road, Chuadanga Sadar, Chuadanga',
+      phone: '+880 761-63105',
+      emergencyPhone: '+880 761-63106',
+      email: 'info@chuadangamedicalcenter.com',
+      establishedYear: 1998,
+      description: 'Chuadanga Medical Center is one of the premier private hospitals in Chuadanga Sadar offering specialist chambers, 24/7 diagnostic labs, and maternity care.',
+      logoUrl: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=300&auto=format&fit=crop&q=80',
+      coverUrl: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?w=1200&auto=format&fit=crop&q=80',
+      licenseNumber: 'REG-CDG-1998-4412',
+      facilities: ['24/7 Emergency Service', 'Diagnostic Pathology', 'Digital X-Ray', 'Specialist Chambers'],
       doctors: [
         {
           name: 'Dr. Md. Rafiqul Islam',
@@ -223,7 +225,7 @@ async function main() {
           chamberRoom: 'Chamber #203, Female Ward Block',
           phone: '+880 1814-223344',
           photoUrl: 'https://images.unsplash.com/photo-1594824813566-78a9c2d1b827?w=400&auto=format&fit=crop&q=80',
-          bio: 'Experienced gynecologist dedicated to compassionate antenatal care, cesarean & normal deliveries, ovarian cyst treatment, and pelvic health.',
+          bio: 'Experienced gynecologist dedicated to compassionate antenatal care, cesarean & normal deliveries, and pelvic health.',
         },
         {
           name: 'Dr. A.H.M. Kamal Hossain',
@@ -238,7 +240,7 @@ async function main() {
           chamberRoom: 'OT Complex, 3rd Floor',
           phone: '+880 1716-334455',
           photoUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80',
-          bio: 'Specialist laparoscopic surgeon performing keyhole gallbladder surgeries, hernia repair, appendectomy, and abdominal tumor resections.',
+          bio: 'Specialist laparoscopic surgeon performing keyhole gallbladder surgeries, hernia repair, appendectomy, and abdominal surgeries.',
         },
         {
           name: 'Dr. Nazmul Huda',
@@ -253,7 +255,7 @@ async function main() {
           chamberRoom: 'Chamber #112, ENT Outdoor',
           phone: '+880 1918-445566',
           photoUrl: 'https://images.unsplash.com/photo-1623854767648-e7bb8009f0db?w=400&auto=format&fit=crop&q=80',
-          bio: 'Skilled ENT surgeon specializing in sinus endoscopic surgery, tonsillectomy, eardrum repair (tympanoplasty), and vocal cord polyp care.',
+          bio: 'Skilled ENT surgeon specializing in sinus endoscopic surgery, tonsillectomy, and eardrum repair (tympanoplasty).',
         },
         {
           name: 'Dr. Syeda Rawnak Jahan',
@@ -268,7 +270,7 @@ async function main() {
           chamberRoom: 'Eye Clinic, 1st Floor',
           phone: '+880 1719-556677',
           photoUrl: 'https://images.unsplash.com/photo-1651008376811-b90baee60c1f?w=400&auto=format&fit=crop&q=80',
-          bio: 'Prominent eye surgeon offering sutureless phaco cataract surgery, glaucoma screening, pterygium removal, and pediatric vision correction.',
+          bio: 'Prominent eye surgeon offering sutureless phaco cataract surgery, glaucoma screening, and vision correction.',
         },
         {
           name: 'Dr. Md. Moniruzzaman',
@@ -283,28 +285,27 @@ async function main() {
           chamberRoom: 'Room #305, Urology Dept',
           phone: '+880 1812-667788',
           photoUrl: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=400&auto=format&fit=crop&q=80',
-          bio: 'Specialist in kidney stone laser removal (URSL/PCNL), prostate surgery (TURP), urinary tract infections, and male infertility treatment.',
+          bio: 'Specialist in kidney stone laser removal (URSL/PCNL), prostate surgery (TURP), and urinary tract infections.',
         },
       ],
     },
     {
-      hospital: {
-        name: 'Chuadanga Specialized Hospital',
-        slug: 'chuadanga-specialized-hospital',
-        districtId: distChuadanga.id,
-        hospitalType: 'Private Hospital',
-        status: 'ACTIVE',
-        isFeatured: false,
-        address: 'Hospital Road, Chuadanga Sadar, Chuadanga',
-        phone: '+880 761-62201',
-        emergencyPhone: '+880 761-62202',
-        email: 'contact@chuadangaspecialized.org',
-        establishedYear: 2005,
-        description: 'Chuadanga Specialized Hospital provides comprehensive outdoor doctor chambers, general surgery, pediatric care, and emergency ambulance services across Chuadanga District.',
-        logoUrl: 'https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=300&auto=format&fit=crop&q=80',
-        coverUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1200&auto=format&fit=crop&q=80',
-        licenseNumber: 'REG-CDG-2005-3310',
-      },
+      name: 'Chuadanga Specialized Hospital',
+      slug: 'chuadanga-specialized-hospital',
+      districtId: district.id,
+      hospitalType: 'Private Hospital',
+      status: 'ACTIVE',
+      isFeatured: false,
+      address: 'Hospital Road, Chuadanga Sadar, Chuadanga',
+      phone: '+880 761-62201',
+      emergencyPhone: '+880 761-62202',
+      email: 'contact@chuadangaspecialized.org',
+      establishedYear: 2005,
+      description: 'Chuadanga Specialized Hospital provides comprehensive outdoor doctor chambers, general surgery, pediatric care, and emergency services.',
+      logoUrl: 'https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=300&auto=format&fit=crop&q=80',
+      coverUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1200&auto=format&fit=crop&q=80',
+      licenseNumber: 'REG-CDG-2005-3310',
+      facilities: ['24/7 Emergency Service', 'Dialysis Unit', 'Endoscopy Suite'],
       doctors: [
         {
           name: 'Dr. Sheikh Asaduzzaman',
@@ -334,7 +335,7 @@ async function main() {
           chamberRoom: 'Room #105, Child Care Unit',
           phone: '+880 1815-887766',
           photoUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&auto=format&fit=crop&q=80',
-          bio: 'Extensive expertise in treating pediatric infections, jaundice, pneumonia, malnutrition, and pediatric growth development.',
+          bio: 'Extensive expertise in treating pediatric infections, jaundice, pneumonia, malnutrition, and child growth development.',
         },
         {
           name: 'Dr. Md. Zakir Hossain',
@@ -379,7 +380,7 @@ async function main() {
           chamberRoom: 'Room #204, 2nd Floor',
           phone: '+880 1718-554433',
           photoUrl: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=400&auto=format&fit=crop&q=80',
-          bio: 'Expert chest physician specializing in asthma, COPD, tuberculosis, chronic bronchitis, lung infections, and allergy immunotherapy.',
+          bio: 'Expert chest physician specializing in asthma, COPD, tuberculosis, chronic bronchitis, and lung infections.',
         },
         {
           name: 'Dr. Shahriar Ahmed',
@@ -394,28 +395,27 @@ async function main() {
           chamberRoom: 'Kidney Dialysis Unit, 4th Floor',
           phone: '+880 1819-443322',
           photoUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80',
-          bio: 'Kidney specialist focused on acute kidney injury, chronic kidney disease (CKD), hemodialysis management, and diabetic nephropathy.',
+          bio: 'Kidney specialist focused on acute kidney injury, chronic kidney disease (CKD), and hemodialysis management.',
         },
       ],
     },
     {
-      hospital: {
-        name: 'Alamdanga Health Care Clinic',
-        slug: 'alamdanga-health-care-clinic',
-        districtId: distChuadanga.id,
-        hospitalType: 'Clinic',
-        status: 'ACTIVE',
-        isFeatured: true,
-        address: 'Station Para, Alamdanga, Chuadanga',
-        phone: '+880 7622-56120',
-        emergencyPhone: '+880 7622-56121',
-        email: 'info@alamdangahealthcare.com',
-        establishedYear: 2012,
-        description: 'Alamdanga Health Care Clinic offers expert doctor consultation, digital X-Ray, diagnostic pathology, and 24-hour emergency care for Alamdanga Upazila residents.',
-        logoUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=300&auto=format&fit=crop&q=80',
-        coverUrl: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&auto=format&fit=crop&q=80',
-        licenseNumber: 'REG-CDG-2012-7721',
-      },
+      name: 'Alamdanga Health Care Clinic',
+      slug: 'alamdanga-health-care-clinic',
+      districtId: district.id,
+      hospitalType: 'Clinic',
+      status: 'ACTIVE',
+      isFeatured: true,
+      address: 'Station Para, Alamdanga, Chuadanga',
+      phone: '+880 7622-56120',
+      emergencyPhone: '+880 7622-56121',
+      email: 'info@alamdangahealthcare.com',
+      establishedYear: 2012,
+      description: 'Alamdanga Health Care Clinic offers expert doctor consultation, digital X-Ray, diagnostic pathology, and emergency care.',
+      logoUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=300&auto=format&fit=crop&q=80',
+      coverUrl: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&auto=format&fit=crop&q=80',
+      licenseNumber: 'REG-CDG-2012-7721',
+      facilities: ['Outdoor Doctor Chamber', 'Dental Clinic', 'Physiotherapy Unit'],
       doctors: [
         {
           name: 'Dr. Md. Motiur Rahman',
@@ -475,7 +475,7 @@ async function main() {
           chamberRoom: 'Minor OT Room, 1st Floor',
           phone: '+880 1715-009988',
           photoUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80',
-          bio: 'Experienced surgeon performing hydrocele, piles, fistula, cyst, wound debridement, and minor outpatient surgical procedures.',
+          bio: 'Experienced surgeon performing hydrocele, piles, fistula, cyst, and minor outpatient surgical procedures.',
         },
         {
           name: 'Dr. Rumana Parvin',
@@ -490,7 +490,7 @@ async function main() {
           chamberRoom: 'Physiotherapy Unit, Ground Floor',
           phone: '+880 1816-998877',
           photoUrl: 'https://images.unsplash.com/photo-1594824813566-78a9c2d1b827?w=400&auto=format&fit=crop&q=80',
-          bio: 'Specialist in non-surgical pain management for neck pain, lumbar paralysis, frozen shoulder, stroke rehab, and joint stiffness.',
+          bio: 'Specialist in non-surgical pain management for neck pain, lumbar paralysis, frozen shoulder, and joint stiffness.',
         },
         {
           name: 'Dr. Md. Imran Hossain',
@@ -505,28 +505,27 @@ async function main() {
           chamberRoom: 'Dental Dental Clinic Room',
           phone: '+880 1717-887766',
           photoUrl: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=400&auto=format&fit=crop&q=80',
-          bio: 'Modern dental surgeon offering painless root canal treatment, dental scaling, teeth whitening, tooth extraction, and braces consultation.',
+          bio: 'Modern dental surgeon offering painless root canal treatment, dental scaling, teeth whitening, and tooth extraction.',
         },
       ],
     },
     {
-      hospital: {
-        name: 'Damurhuda Digital Hospital & Diagnostic',
-        slug: 'damurhuda-digital-hospital',
-        districtId: distChuadanga.id,
-        hospitalType: 'Diagnostic Center',
-        status: 'ACTIVE',
-        isFeatured: false,
-        address: 'Munshiganj Bazar, Damurhuda, Chuadanga',
-        phone: '+880 7623-44109',
-        emergencyPhone: '+880 7623-44110',
-        email: 'service@damurhudadigital.com',
-        establishedYear: 2017,
-        description: 'Modern diagnostic center & specialized consultation hospital serving Damurhuda and Darshana border areas with advanced ultrasonography and outdoor chambers.',
-        logoUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=300&auto=format&fit=crop&q=80',
-        coverUrl: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?w=1200&auto=format&fit=crop&q=80',
-        licenseNumber: 'REG-CDG-2017-8890',
-      },
+      name: 'Damurhuda Digital Hospital & Diagnostic',
+      slug: 'damurhuda-digital-hospital',
+      districtId: district.id,
+      hospitalType: 'Diagnostic Center',
+      status: 'ACTIVE',
+      isFeatured: false,
+      address: 'Munshiganj Bazar, Damurhuda, Chuadanga',
+      phone: '+880 7623-44109',
+      emergencyPhone: '+880 7623-44110',
+      email: 'service@damurhudadigital.com',
+      establishedYear: 2017,
+      description: 'Modern diagnostic center & specialized consultation hospital serving Damurhuda and Darshana border areas.',
+      logoUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=300&auto=format&fit=crop&q=80',
+      coverUrl: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?w=1200&auto=format&fit=crop&q=80',
+      licenseNumber: 'REG-CDG-2017-8890',
+      facilities: ['Digital Ultrasonography', '24/7 Pharmacy', 'Outdoor Chambers'],
       doctors: [
         {
           name: 'Dr. A.K.M. Fazlul Haque',
@@ -541,7 +540,7 @@ async function main() {
           chamberRoom: 'Chamber #101, Main Block',
           phone: '+880 1711-665544',
           photoUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80',
-          bio: 'Heart specialist serving Damurhuda and Darshana region, specializing in ECG interpretation, Echo, high blood pressure, and ischemic heart disease.',
+          bio: 'Heart specialist serving Damurhuda and Darshana region, specializing in ECG interpretation, Echo, and high blood pressure.',
         },
         {
           name: 'Dr. Sayeeda Sultana',
@@ -556,7 +555,7 @@ async function main() {
           chamberRoom: 'Chamber #102, Ground Floor',
           phone: '+880 1812-554433',
           photoUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&auto=format&fit=crop&q=80',
-          bio: 'Expert in female reproductive health, pregnancy care, menstrual irregularities, ultrasound anomaly scans, and post-partum recovery.',
+          bio: 'Expert in female reproductive health, pregnancy care, menstrual irregularities, and ultrasound anomaly scans.',
         },
         {
           name: 'Dr. Md. Tariq Hasan',
@@ -571,7 +570,7 @@ async function main() {
           chamberRoom: 'Chamber #201, 2nd Floor',
           phone: '+880 1913-443322',
           photoUrl: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&auto=format&fit=crop&q=80',
-          bio: 'Specialized endocrinologist providing treatment for Type 1 & Type 2 diabetes, thyroid disorders, obesity, and adrenal hormone issues.',
+          bio: 'Specialized endocrinologist providing treatment for Type 1 & Type 2 diabetes, thyroid disorders, and obesity.',
         },
         {
           name: 'Dr. Nazma Akter',
@@ -586,7 +585,7 @@ async function main() {
           chamberRoom: 'Room #104, Pediatric Section',
           phone: '+880 1714-332211',
           photoUrl: 'https://images.unsplash.com/photo-1651008376811-b90baee60c1f?w=400&auto=format&fit=crop&q=80',
-          bio: 'Attentive child health doctor specializing in infant nutrition, pediatric respiratory infections, viral fever, and childhood growth monitoring.',
+          bio: 'Attentive child health doctor specializing in infant nutrition, pediatric respiratory infections, and viral fever.',
         },
         {
           name: 'Dr. Md. Babul Akhter',
@@ -601,7 +600,7 @@ async function main() {
           chamberRoom: 'Room #203, Ortho Block',
           phone: '+880 1815-221100',
           photoUrl: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=400&auto=format&fit=crop&q=80',
-          bio: 'Orthopedic practitioner specializing in fracture plastering, dislocation reduction, joint pain relief, and orthopedic rehabilitation.',
+          bio: 'Orthopedic practitioner specializing in fracture plastering, dislocation reduction, and joint pain relief.',
         },
         {
           name: 'Dr. Fahmida Rahman',
@@ -616,83 +615,68 @@ async function main() {
           chamberRoom: 'Room #106, Outdoor Clinic',
           phone: '+880 1916-110099',
           photoUrl: 'https://images.unsplash.com/photo-1594824813566-78a9c2d1b827?w=400&auto=format&fit=crop&q=80',
-          bio: 'Dermatology consultant treating fungal skin infections, scabies, ringworm, psoriasis, facial acne, and food & dust allergies.',
+          bio: 'Dermatology consultant treating fungal skin infections, scabies, ringworm, psoriasis, facial acne, and allergies.',
         },
       ],
     },
   ];
 
   const daysSatToThu = [6, 0, 1, 2, 3, 4]; // Sat, Sun, Mon, Tue, Wed, Thu
+  let totalDocs = 0;
 
-  const facilitiesList = [
-    '24/7 Emergency & Trauma Center',
-    'ICU & CCU Intensive Support',
-    'Outdoor Specialist Chamber',
-    'Digital Radiology & MRI',
-    '24 Hours Pharmacy',
-  ];
+  for (const item of hospitals) {
+    const { facilities, doctors: docList, ...hospData } = item;
+    const createdHospital = await prisma.hospital.create({ data: hospData });
 
-  let totalDoctorsSeeded = 0;
-
-  for (const item of hospitalsWithUniqueDoctors) {
-    // Create Hospital
-    const hospital = await prisma.hospital.create({ data: item.hospital });
-    console.log(`🏥 Created Hospital: ${hospital.name}`);
-
-    // Create Facilities
-    for (const fName of facilitiesList) {
+    for (const fac of facilities) {
       await prisma.hospitalFacility.create({
         data: {
-          hospitalId: hospital.id,
-          facilityName: fName,
+          hospitalId: createdHospital.id,
+          facilityName: fac,
+          isAvailable: true,
         },
       });
     }
 
-    // Create 6 UNIQUE Doctors for this specific hospital
-    for (let i = 0; i < item.doctors.length; i++) {
-      const docData = item.doctors[i];
-
-      // Ensure/create Department for hospital
+    for (const doc of docList) {
       let dept = await prisma.department.findFirst({
-        where: { hospitalId: hospital.id, nameEn: docData.deptEn },
+        where: { hospitalId: createdHospital.id, nameEn: doc.deptEn },
       });
 
       if (!dept) {
         dept = await prisma.department.create({
           data: {
-            hospitalId: hospital.id,
-            nameEn: docData.deptEn,
-            nameBn: docData.deptBn,
+            hospitalId: createdHospital.id,
+            nameEn: doc.deptEn,
+            nameBn: doc.deptBn,
           },
         });
       }
 
-      const doctor = await prisma.doctor.create({
+      const createdDoctor = await prisma.doctor.create({
         data: {
-          hospitalId: hospital.id,
+          hospitalId: createdHospital.id,
           departmentId: dept.id,
-          name: docData.name,
-          slug: docData.slug,
-          bmdcNumber: docData.bmdcNumber,
-          degrees: docData.degrees,
-          specialization: docData.specialization,
-          experienceYears: docData.experienceYears,
-          consultationFee: docData.consultationFee,
-          chamberRoom: docData.chamberRoom,
-          phone: docData.phone,
-          bio: docData.bio,
+          name: doc.name,
+          slug: doc.slug,
+          degrees: doc.degrees,
+          specialization: doc.specialization,
+          bmdcNumber: doc.bmdcNumber,
+          experienceYears: doc.experienceYears,
+          consultationFee: doc.consultationFee,
+          chamberRoom: doc.chamberRoom,
+          phone: doc.phone,
+          photoUrl: doc.photoUrl,
+          bio: doc.bio,
           languages: 'Bangla, English',
           status: 'ACTIVE',
-          photoUrl: docData.photoUrl,
         },
       });
 
-      // Create Weekly Schedule (Sat to Thu) for Doctor
       for (const dayOfWeek of daysSatToThu) {
         await prisma.doctorSchedule.create({
           data: {
-            doctorId: doctor.id,
+            doctorId: createdDoctor.id,
             dayOfWeek,
             startTime: '16:00',
             endTime: '20:00',
@@ -700,258 +684,43 @@ async function main() {
           },
         });
       }
-
-      totalDoctorsSeeded++;
-    }
-
-    console.log(`   ✅ Seeded 6 UNIQUE doctors for ${hospital.name}`);
-  }
-
-  // Seed Blood Donors for Chuadanga
-  const sampleDonors = [
-    {
-      fullName: 'Md. Rakibul Hasan',
-      phone: '01711223344',
-      bloodGroup: 'O+',
-      age: 26,
-      gender: 'Male',
-      address: 'Court Road, Chuadanga Sadar',
-      area: 'Chuadanga Sadar',
-      availability: 'available',
-      lastDonationDate: '2026-04-15',
-      note: 'Always ready for emergency blood donation in Chuadanga Sadar.',
-      consent: true,
-      status: 'approved',
-      approvedAt: new Date(),
-    },
-    {
-      fullName: 'Sabrina Yeasmin',
-      phone: '01822334455',
-      bloodGroup: 'A+',
-      age: 23,
-      gender: 'Female',
-      address: 'Station Para, Alamdanga',
-      area: 'Alamdanga',
-      availability: 'available',
-      lastDonationDate: '2026-03-10',
-      note: 'Available on weekends and evenings.',
-      consent: true,
-      status: 'approved',
-      approvedAt: new Date(),
-    },
-    {
-      fullName: 'Tanvir Ahmed Shuvo',
-      phone: '01933445566',
-      bloodGroup: 'B+',
-      age: 29,
-      gender: 'Male',
-      address: 'Munshiganj Bazar, Damurhuda',
-      area: 'Damurhuda',
-      availability: 'available',
-      lastDonationDate: '2026-02-01',
-      note: 'Can travel anywhere inside Chuadanga in urgent cases.',
-      consent: true,
-      status: 'approved',
-      approvedAt: new Date(),
-    },
-    {
-      fullName: 'Kazi Mahfuzur Rahman',
-      phone: '01744556677',
-      bloodGroup: 'AB+',
-      age: 32,
-      gender: 'Male',
-      address: 'Bus Stand Area, Jibannagar',
-      area: 'Jibannagar',
-      availability: 'available',
-      lastDonationDate: '2026-05-20',
-      note: 'Universal recipient, ready for AB+ donations.',
-      consent: true,
-      status: 'approved',
-      approvedAt: new Date(),
-    },
-    {
-      fullName: 'Sharmin Akter',
-      phone: '01855667788',
-      bloodGroup: 'O-',
-      age: 25,
-      gender: 'Female',
-      address: 'Hospital Road, Chuadanga Sadar',
-      area: 'Chuadanga Sadar',
-      availability: 'available',
-      lastDonationDate: '2026-01-18',
-      note: 'O Negative universal donor for emergency ICU patients.',
-      consent: true,
-      status: 'approved',
-      approvedAt: new Date(),
-    },
-    {
-      fullName: 'Mehedi Hasan Babu',
-      phone: '01666778899',
-      bloodGroup: 'A-',
-      age: 27,
-      gender: 'Male',
-      address: 'Vatala, Chuadanga Sadar',
-      area: 'Chuadanga Sadar',
-      availability: 'unavailable',
-      lastDonationDate: '2026-07-05',
-      note: 'Recently donated blood on July 5, unavailable for next 2 months.',
-      consent: true,
-      status: 'approved',
-      approvedAt: new Date(),
-    },
-    {
-      fullName: 'Anik Chowdhury',
-      phone: '01777889900',
-      bloodGroup: 'B-',
-      age: 24,
-      gender: 'Male',
-      address: 'Alamdanga Railway Station',
-      area: 'Alamdanga',
-      availability: 'available',
-      note: 'Student at Chuadanga Government College.',
-      consent: true,
-      status: 'pending',
-    },
-  ];
-
-  for (const donor of sampleDonors) {
-    await prisma.bloodDonor.create({ data: donor });
-  }
-
-  // 4. Seed Emergency Helplines
-  const emergencyServices = [
-    {
-      title: 'চুয়াডাঙ্গা সদর হাসপাতাল জরুরি বিভাগ ও অ্যাম্বুলেন্স',
-      number: '01711-625880',
-      desc: '২৪ ঘণ্টা জরুরি চিকিৎসা ও দ্রুত অ্যাম্বুলেন্স পরিবহন সেবা',
-      badge: 'Emergency 24/7',
-      icon: 'Ambulance',
-      isAvailable: true,
-      orderIndex: 1,
-    },
-    {
-      title: 'জাতীয় জরুরি সেবা',
-      number: '999',
-      desc: 'বাংলাদেশ পুলিশ, ফায়ার সার্ভিস ও জরুরি অ্যাম্বুলেন্স সহায়তা',
-      badge: 'National 24/7',
-      icon: 'ShieldAlert',
-      isAvailable: true,
-      orderIndex: 2,
-    },
-    {
-      title: 'চুয়াডাঙ্গা ফায়ার সার্ভিস ও সিভিল ডিফেন্স',
-      number: '01730-002233',
-      desc: 'জরুরি উদ্ধার ও অগ্নিনির্বাপণ কন্ট্রোল রুম',
-      badge: 'Rescue 24/7',
-      icon: 'Flame',
-      isAvailable: true,
-      orderIndex: 3,
-    },
-    {
-      title: 'চুয়াডাঙ্গা রেড ক্রিসেন্ট রক্তদান হেল্পলাইন',
-      number: '01712-998877',
-      desc: 'জরুরি রক্তের প্রয়োজনে তাৎক্ষণিক ডোনার সমন্বয়',
-      badge: 'Blood Helpline',
-      icon: 'Droplet',
-      isAvailable: true,
-      orderIndex: 4,
-    },
-  ];
-
-  for (const s of emergencyServices) {
-    await prisma.emergencyHelpline.create({ data: s });
-  }
-
-  // 5. Seed Diagnostic Tests & Availabilities
-  const diagnosticTestsData = [
-    {
-      name: 'Complete Blood Count (CBC)',
-      slug: 'complete-blood-count-cbc',
-      aliases: JSON.stringify(['CBC', 'Blood Count', 'Hemoglobin', 'Hb']),
-      category: 'Hematology',
-      price: 400,
-    },
-    {
-      name: 'HbA1c (Glycated Hemoglobin)',
-      slug: 'hba1c-glycated-hemoglobin',
-      aliases: JSON.stringify(['HbA1c', 'Sugar 3 Months', 'Diabetes Profile']),
-      category: 'Biochemistry',
-      price: 800,
-    },
-    {
-      name: 'Serum Creatinine (Kidney Function)',
-      slug: 'serum-creatinine',
-      aliases: JSON.stringify(['Creatinine', 'Kidney Test', 'S. Creatinine']),
-      category: 'Biochemistry',
-      price: 450,
-    },
-    {
-      name: 'Lipid Profile (Cholesterol)',
-      slug: 'lipid-profile',
-      aliases: JSON.stringify(['Lipid', 'Cholesterol', 'Triglycerides', 'HDL', 'LDL']),
-      category: 'Biochemistry',
-      price: 900,
-    },
-    {
-      name: 'Electrocardiogram (ECG)',
-      slug: 'electrocardiogram-ecg',
-      aliases: JSON.stringify(['ECG', 'EKG', 'Heart Tracing']),
-      category: 'Cardiology',
-      price: 350,
-    },
-    {
-      name: 'Echocardiography (2D Color Doppler)',
-      slug: 'echocardiography-echo',
-      aliases: JSON.stringify(['Echo', '2D Echo', 'Color Doppler']),
-      category: 'Cardiology',
-      price: 1500,
-    },
-    {
-      name: 'USG of Whole Abdomen',
-      slug: 'usg-whole-abdomen',
-      aliases: JSON.stringify(['Ultrasonography', 'USG Abdomen', 'Abdominal USG']),
-      category: 'Radiology',
-      price: 1000,
-    },
-    {
-      name: 'Digital Chest X-Ray (P/A View)',
-      slug: 'digital-chest-x-ray',
-      aliases: JSON.stringify(['X-Ray Chest', 'Chest Xray', 'Lungs Xray']),
-      category: 'Radiology',
-      price: 500,
-    },
-  ];
-
-  const allHospitals = await prisma.hospital.findMany();
-
-  for (const t of diagnosticTestsData) {
-    const test = await prisma.diagnosticTest.create({
-      data: {
-        name: t.name,
-        slug: t.slug,
-        aliases: t.aliases,
-        category: t.category,
-      },
-    });
-
-    for (const h of allHospitals) {
-      await prisma.testAvailability.create({
-        data: {
-          testId: test.id,
-          hospitalId: h.id,
-          availabilityStatus: 'AVAILABLE',
-          price: t.price,
-        },
-      });
+      totalDocs++;
     }
   }
 
-  console.log(`🎉 Seed finished cleanly! Created ${hospitalsWithUniqueDoctors.length} hospitals, ${totalDoctorsSeeded} unique doctors, ${sampleDonors.length} blood donors, ${emergencyServices.length} helplines & ${diagnosticTestsData.length} diagnostic tests.`);
+  // Blood Donors
+  const bloodDonors = [
+    { fullName: 'Md. Rakibul Hasan', phone: '01711223344', bloodGroup: 'O+', age: 26, gender: 'Male', address: 'Court Road, Chuadanga Sadar', area: 'Chuadanga Sadar', availability: 'available', consent: true, status: 'approved', approvedAt: new Date() },
+    { fullName: 'Sabrina Yeasmin', phone: '01822334455', bloodGroup: 'A+', age: 23, gender: 'Female', address: 'Station Para, Alamdanga', area: 'Alamdanga', availability: 'available', consent: true, status: 'approved', approvedAt: new Date() },
+    { fullName: 'Tanvir Ahmed Shuvo', phone: '01933445566', bloodGroup: 'B+', age: 29, gender: 'Male', address: 'Munshiganj Bazar, Damurhuda', area: 'Damurhuda', availability: 'available', consent: true, status: 'approved', approvedAt: new Date() },
+    { fullName: 'Kazi Mahfuzur Rahman', phone: '01744556677', bloodGroup: 'AB+', age: 32, gender: 'Male', address: 'Bus Stand Area, Jibannagar', area: 'Jibannagar', availability: 'available', consent: true, status: 'approved', approvedAt: new Date() },
+    { fullName: 'Sharmin Akter', phone: '01855667788', bloodGroup: 'O-', age: 25, gender: 'Female', address: 'Hospital Road, Chuadanga Sadar', area: 'Chuadanga Sadar', availability: 'available', consent: true, status: 'approved', approvedAt: new Date() },
+    { fullName: 'Mehedi Hasan Babu', phone: '01666778899', bloodGroup: 'A-', age: 27, gender: 'Male', address: 'Vatala, Chuadanga Sadar', area: 'Chuadanga Sadar', availability: 'unavailable', consent: true, status: 'approved', approvedAt: new Date() },
+    { fullName: 'Anik Chowdhury', phone: '01777889900', bloodGroup: 'B-', age: 24, gender: 'Male', address: 'Alamdanga Railway Station', area: 'Alamdanga', availability: 'available', consent: true, status: 'pending' },
+  ];
+
+  for (const d of bloodDonors) {
+    await prisma.bloodDonor.create({ data: d });
+  }
+
+  // Helplines
+  const helplines = [
+    { title: 'চুয়াডাঙ্গা সদর হাসপাতাল জরুরি বিভাগ ও অ্যাম্বুলেন্স', number: '01711-625880', desc: '২৪ ঘণ্টা জরুরি চিকিৎসা ও দ্রুত অ্যাম্বুলেন্স পরিবহন সেবা', badge: 'Emergency 24/7', icon: 'Ambulance', isAvailable: true, orderIndex: 1 },
+    { title: 'জাতীয় জরুরি সেবা', number: '999', desc: 'বাংলাদেশ পুলিশ, ফায়ার সার্ভিস ও জরুরি অ্যাম্বুলেন্স সহায়তা', badge: 'National 24/7', icon: 'ShieldAlert', isAvailable: true, orderIndex: 2 },
+    { title: 'চুয়াডাঙ্গা ফায়ার সার্ভিস ও সিভিল ডিফেন্স', number: '01730-002233', desc: 'জরুরি উদ্ধার ও অগ্নিনির্বাপণ কন্ট্রোল রুম', badge: 'Rescue 24/7', icon: 'Flame', isAvailable: true, orderIndex: 3 },
+    { title: 'চুয়াডাঙ্গা রেড ক্রিসেন্ট রক্তদান হেল্পলাইন', number: '01712-998877', desc: 'জরুরি রক্তের প্রয়োজনে তাৎক্ষণিক ডোনার সমন্বয়', badge: 'Blood Helpline', icon: 'Droplet', isAvailable: true, orderIndex: 4 },
+  ];
+
+  for (const h of helplines) {
+    await prisma.emergencyHelpline.create({ data: h });
+  }
+
+  console.log(`✨ Successfully seeded database with ${hospitals.length} Hospitals, ${totalDocs} Doctors, ${bloodDonors.length} Blood Donors, and ${helplines.length} Helplines.`);
 }
 
-main()
+runSeed()
   .catch((e) => {
-    console.error('❌ Seed error:', e);
+    console.error('❌ Seed failed:', e);
     process.exit(1);
   })
   .finally(async () => {

@@ -21,7 +21,8 @@ import {
   Siren,
   PhoneCall,
   Home,
-  Info
+  Info,
+  UserPlus
 } from 'lucide-react';
 import ProfileEditModal from './ProfileEditModal';
 
@@ -148,25 +149,32 @@ export default function Navbar() {
               <div className="h-5 w-px bg-slate-200/90 my-auto shrink-0"></div>
 
               {user ? (
-                <button
-                  onClick={() => setProfileModalOpen(true)}
-                  className="flex items-center gap-2.5 bg-slate-100/90 hover:bg-white hover:border-sky-300 p-1.5 pl-2 pr-3.5 rounded-full border border-slate-200/90 shadow-xs hover:shadow-md transition-all duration-300 ease-out group active:scale-95 cursor-pointer shrink-0"
-                  title="Profile Settings & Edit"
-                >
-                  <div className="w-7 h-7 rounded-full bg-sky-600 group-hover:bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-110 transition-all duration-300">
-                    <User className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-xs font-extrabold text-nuvicaNavy-900 truncate max-w-[120px]">{user.name}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setProfileModalOpen(true)}
+                    className="flex items-center gap-2 bg-slate-100 hover:bg-white hover:border-sky-300 p-1.5 pl-2.5 pr-3.5 rounded-full border border-slate-200 shadow-xs hover:shadow-md transition-all duration-300 group cursor-pointer shrink-0"
+                    title="Profile Settings & Account"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-sky-600 group-hover:bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <User className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <span className="text-xs font-black text-nuvicaNavy-900 truncate max-w-[110px]">{user.name}</span>
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="p-2 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                    title="লগআউট করুন"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
               ) : (
                 <Link
                   href="/login"
-                  className="group relative inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full font-black text-xs text-white bg-sky-600 hover:bg-sky-700 shadow-md hover:shadow-lg transition-all duration-300 border border-sky-500 hover:scale-[1.02] active:scale-95 shrink-0"
+                  className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-black text-xs text-white bg-sky-600 hover:bg-sky-700 shadow-md hover:shadow-lg transition-all duration-300 border border-sky-500 hover:scale-[1.02] active:scale-95 shrink-0"
                 >
-                  <div className="w-5 h-5 rounded-full bg-white/20 group-hover:bg-white text-white group-hover:text-sky-700 flex items-center justify-center transition-all duration-300 shrink-0">
-                    <User className="w-3 h-3" />
-                  </div>
-                  <span className="tracking-wide">Login / Register</span>
+                  <UserPlus className="w-3.5 h-3.5 text-white" />
+                  <span className="tracking-wide">Login / Sign Up</span>
                 </Link>
               )}
             </div>

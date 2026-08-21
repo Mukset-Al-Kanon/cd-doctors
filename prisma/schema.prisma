@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 // Constant String Roles: "SUPER_ADMIN", "HOSPITAL_ADMIN", "HOSPITAL_STAFF", "PATIENT"
@@ -14,17 +13,29 @@ datasource db {
 // Constant String AppointmentStatus: "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"
 
 model User {
-  id           String      @id @default(uuid())
-  name         String
-  email        String      @unique
-  phone        String?
-  passwordHash String
-  role         String      @default("PATIENT")
-  hospitalId   String?
-  hospital     Hospital?   @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  AuditLog     AuditLog[]
+  id            String      @id @default(uuid())
+  name          String
+  email         String      @unique
+  phone         String?
+  phoneVerified Boolean     @default(false)
+  passwordHash  String
+  role          String      @default("PATIENT")
+  hospitalId    String?
+  hospital      Hospital?   @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  AuditLog      AuditLog[]
+}
+
+model OtpVerification {
+  id        String   @id @default(uuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phone])
 }
 
 model Division {

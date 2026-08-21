@@ -46,7 +46,7 @@ export const SPECIALTY_REGISTRY: Record<CanonicalSpecialty, SpecialtyDefinition>
     keywords: [
       'pediatric', 'pediatrics', 'paediatric', 'paediatrics', 'pediatrician',
       'child', 'children', 'baby', 'newborn', 'neonat', 'neonatologist',
-      'shishu', 'sisu', 'sishu', 'shisu', 'sisur', 'shishur', 'bacha', 'baccha',
+      'shishu', 'sisu', 'sishu', 'shisu', 'sisur', 'shishur', 'bacha', 'baccha', 'bachader', 'baccader',
       'শিশু', 'বাচ্চা', 'নবজাতক', 'কিশোর', 'dch', 'paed'
     ],
     dbKeywords: ['pediatr', 'paediatr', 'child', 'shishu', 'sisu', 'sishu', 'শিশু', 'বাচ্চা', 'নবজাতক', 'dch', 'paed'],
@@ -58,7 +58,7 @@ export const SPECIALTY_REGISTRY: Record<CanonicalSpecialty, SpecialtyDefinition>
     keywords: [
       'gynecology', 'gynecologist', 'gynaecology', 'gynaecologist',
       'gyne', 'gynae', 'gaini', 'gyni', 'gynei', 'gynic',
-      'obs', 'obstetric', 'obstetrics', 'women', 'female', 'mohila', 'stri', 'proshuti',
+      'obs', 'obstetric', 'obstetrics', 'women', 'female', 'mohila', 'stri', 'proshuti', 'meyeder', 'pregnancy',
       'গাইনি', 'গাইনী', 'মহিলা', 'স্ত্রী', 'প্রসূতি', 'গর্ভবতী', 'নারীরোগ', 'dgo'
     ],
     dbKeywords: ['gynecolog', 'gynaecolog', 'gynae', 'gyne', 'obstet', 'obs', 'স্ত্রী', 'প্রসূতি', 'dgo', 'infertility'],
@@ -69,8 +69,8 @@ export const SPECIALTY_REGISTRY: Record<CanonicalSpecialty, SpecialtyDefinition>
     canonicalNameBn: 'হৃদরোগ (কার্ডিওলজি)',
     keywords: [
       'cardiology', 'cardiologist', 'cardiac', 'cardio',
-      'heart', 'hart', 'hridrog', 'hrid', 'hridroog',
-      'হৃদরোগ', 'কার্ডিওলজি', 'হার্ট', 'কার্ডিয়াক', 'd-card'
+      'heart', 'hart', 'hridrog', 'hrid', 'hridroog', 'chest pain', 'buk', 'buke', 'dhorphor',
+      'হৃদরোগ', 'কার্ডিওলজি', 'হার্ট', 'কার্ডিয়াক', 'd-card', 'বুক', 'বুকে ব্যথা'
     ],
     dbKeywords: ['cardiolog', 'cardiac', 'heart', 'হৃদরোগ', 'কার্ডিওলজি', 'd-card'],
   },
@@ -80,8 +80,8 @@ export const SPECIALTY_REGISTRY: Record<CanonicalSpecialty, SpecialtyDefinition>
     canonicalNameBn: 'মেডিসিন বিশেষজ্ঞ',
     keywords: [
       'medicine', 'medisin', 'medisn', 'medicin', 'medecin',
-      'physician', 'internal medicine', 'general medicine', 'medisin doctor',
-      'মেডিসিন', 'মেডিসিন বিশেষজ্ঞ', 'এফসিপিএস মেডিসিন'
+      'physician', 'internal medicine', 'general medicine', 'medisin doctor', 'fever', 'jor', 'cold', 'thanda',
+      'মেডিসিন', 'মেডিসিন বিশেষজ্ঞ', 'এফসিপিএস মেডিসিন', 'জ্বর', 'কাশি'
     ],
     dbKeywords: ['physician', 'internal medicine', 'মেডিসিন', 'medicine'],
   },
@@ -91,29 +91,30 @@ export const SPECIALTY_REGISTRY: Record<CanonicalSpecialty, SpecialtyDefinition>
     canonicalNameBn: 'চর্ম ও যৌন',
     keywords: [
       'dermatology', 'dermatologist', 'derma', 'skin', 'skincare',
-      'chormo', 'cormo', 'chormorog', 'twok', 'alorji', 'allergy',
-      'চর্ম', 'ত্বক', 'এলার্জি', 'চামড়া', 'যৌনরোগ', 'ddv', 'laser'
+      'chormo', 'cormo', 'chormorog', 'twok', 'alorji', 'allergy', 'chul pora', 'chulkani', 'dad', 'acne',
+      'চর্ম', 'ত্বক', 'এলার্জি', 'চামড়া', 'যৌনরোগ', 'ddv', 'laser', 'চুল পড়া', 'চুলকানি', 'দাদ'
     ],
     dbKeywords: ['dermatolog', 'skin', 'derma', 'চর্ম', 'এলার্জি', 'ddv', 'laser'],
   },
   ORTHOPEDICS: {
     canonical: 'ORTHOPEDICS',
     canonicalNameEn: 'Orthopedics',
-    canonicalNameBn: 'অর্থোপেডিক্স (হাড়-জোড়া)',
+    canonicalNameBn: 'অর্থোপেডিক্স (হাড়-জোড়া ও স্পাইন)',
     keywords: [
       'orthopedics', 'orthopedist', 'orthopaedics', 'ortho',
-      'bone', 'fracture', 'joint', 'spine', 'had', 'har',
-      'অর্থোপেডিক্স', 'হাড়', 'ভাঙা', 'ট্রমা', 'd-ortho'
+      'bone', 'fracture', 'joint', 'spine', 'had', 'har', 'harer', 'majai', 'maja', 'komor', 'komore',
+      'back pain', 'lumbar', 'sciatica', 'knee pain',
+      'অর্থোপেডিক্স', 'হাড়', 'ভাঙা', 'ট্রমা', 'd-ortho', 'মাজা', 'মাজায়', 'কোমর', 'কোমরে', 'মেরুদণ্ড', 'হাঁটু'
     ],
-    dbKeywords: ['orthoped', 'orthopaed', 'ortho', 'bone', 'অর্থোপেডিক্স', 'হাড়', 'trauma', 'spine', 'd-ortho'],
+    dbKeywords: ['orthoped', 'orthopaed', 'ortho', 'bone', 'অর্থোপেডিক্স', 'হাড়', 'trauma', 'spine', 'd-ortho', 'মাজা', 'কোমর'],
   },
   NEUROLOGY: {
     canonical: 'NEUROLOGY',
     canonicalNameEn: 'Neurology',
     canonicalNameBn: 'নিউরোমেডিসিন ও ব্রেইন',
     keywords: [
-      'neurology', 'neurologist', 'neuro', 'brain', 'stroke', 'neuro medicine',
-      'নিউরো', 'ব্রেইন', 'স্ট্রোক', 'মস্তিষ্ক', 'নিউরোমেডিসিন'
+      'neurology', 'neurologist', 'neuro', 'brain', 'stroke', 'neuro medicine', 'headache', 'matha', 'mathai', 'migraine',
+      'নিউরো', 'ব্রেইন', 'স্ট্রোক', 'মস্তিষ্ক', 'নিউরোমেডিসিন', 'মাথাব্যথা'
     ],
     dbKeywords: ['neurolog', 'neuro', 'নিউরোমেডিসিন', 'ব্রেইন', 'stroke'],
   },
@@ -123,7 +124,7 @@ export const SPECIALTY_REGISTRY: Record<CanonicalSpecialty, SpecialtyDefinition>
     canonicalNameBn: 'নাক, কান ও গলা (ENT)',
     keywords: [
       'ent', 'ear', 'nose', 'throat', 'nak kan gola', 'kan nak gola',
-      'nak', 'kan', 'gola', 'নাক কান গলা', 'নাক', 'কান', 'গলা', 'dlo'
+      'nak', 'kan', 'gola', 'kaner', 'golar', 'tonsil', 'নাক কান গলা', 'নাক', 'কান', 'গলা', 'dlo'
     ],
     dbKeywords: ['ent', 'ear', 'nose', 'throat', 'নাক', 'কান', 'গলা', 'dlo'],
   },
@@ -142,7 +143,7 @@ export const SPECIALTY_REGISTRY: Record<CanonicalSpecialty, SpecialtyDefinition>
     canonicalNameEn: 'Urology',
     canonicalNameBn: 'ইউরোলজি',
     keywords: [
-      'urology', 'urologist', 'urol', 'urinary', 'prostate',
+      'urology', 'urologist', 'urol', 'urinary', 'prostate', 'peshab',
       'ইউরোলজি', 'মূত্রনালী', 'প্রোস্টেট'
     ],
     dbKeywords: ['urolog', 'ইউরোলজি'],
@@ -152,8 +153,8 @@ export const SPECIALTY_REGISTRY: Record<CanonicalSpecialty, SpecialtyDefinition>
     canonicalNameEn: 'Dentistry',
     canonicalNameBn: 'দন্ত ও মুখরোগ (ডেন্টাল)',
     keywords: [
-      'dentistry', 'dentist', 'dental', 'tooth', 'teeth', 'dat', 'dant', 'oral',
-      'দাঁত', 'ডেন্টাল', 'মুখরোগ', 'bds', 'dmd'
+      'dentistry', 'dentist', 'dental', 'tooth', 'teeth', 'dat', 'dant', 'dante', 'oral',
+      'দাঁত', 'ডেন্টাল', 'মুখরোগ', 'bds', 'dmd', 'দাঁতে'
     ],
     dbKeywords: ['dentist', 'dental', 'dmd', 'bds', 'দাঁত', 'oral'],
   },
@@ -162,17 +163,17 @@ export const SPECIALTY_REGISTRY: Record<CanonicalSpecialty, SpecialtyDefinition>
     canonicalNameEn: 'Gastroenterology',
     canonicalNameBn: 'গ্যাস্ট্রোএন্টারোলজি ও লিভার',
     keywords: [
-      'gastroenterology', 'gastroenterologist', 'gastro', 'liver', 'gastric',
-      'লিভার', 'গ্যাস্ট্রো', 'এন্ডোস্কোপি', 'পেট'
+      'gastroenterology', 'gastroenterologist', 'gastro', 'liver', 'gastric', 'pet', 'pete', 'gas', 'acidity', 'ulcer',
+      'লিভার', 'গ্যাস্ট্রো', 'এন্ডোস্কোপি', 'পেট', 'গ্যাস্ট্রিক'
     ],
-    dbKeywords: ['gastroenterol', 'liver', 'endoscop', 'লিভার'],
+    dbKeywords: ['gastroenterol', 'liver', 'endoscop', 'লিভার', 'পেট'],
   },
   ENDOCRINOLOGY: {
     canonical: 'ENDOCRINOLOGY',
     canonicalNameEn: 'Endocrinology',
     canonicalNameBn: 'ডায়াবেটিস ও হরমোন',
     keywords: [
-      'endocrinology', 'endocrinologist', 'diabetes', 'diabetic', 'diabet', 'hormone', 'thyroid',
+      'endocrinology', 'endocrinologist', 'diabetes', 'diabetic', 'diabet', 'hormone', 'thyroid', 'sugar',
       'ডায়াবেটিস', 'হরমোন', 'থাইরয়েড'
     ],
     dbKeywords: ['diabetol', 'ডায়াবেটিস', 'endocrin', 'hormone'],

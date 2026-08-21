@@ -1,25 +1,55 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { hashPassword, signToken, AUTH_COOKIE_NAME } from '@/lib/auth';
+import { normalizeBdPhoneNumber, isPhoneVerified, verifyOtpCode } from '@/lib/otpService';
 
 export async function POST(request: Request) {
   try {
-    const { name, email, phone, password } = await request.json();
+    const { name, email, phone, password, otpCode } = await request.json();
 
     if (!name || !email || !phone || !password) {
-      return NextResponse.json({ error: 'Name, email, phone number, and password are required.' }, { status: 400 });
+      return NextResponse.json({ error: 'নাম, ইমেইল, মোবাইল নম্বর এবং পাসওয়ার্ড প্রদান করুন।' }, { status: 400 });
+    }
+
+    const normalizedPhone = normalizeBdPhoneNumber(phone);
+    if (!normalizedPhone) {
+      return NextResponse.json({ error: 'অনুগ্রহ করে সঠিক ১১ ডিজিটের বাংলাদেশি মোবাইল নম্বর দিন।' }, { status: 400 });
     }
 
     if (password.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters.' }, { status: 400 });
+      return NextResponse.json({ error: 'পাসওয়ার্ড ন্যূনতম ৬ অক্ষরের হতে হবে।' }, { status: 400 });
     }
 
-    const existingUser = await db.user.findUnique({
+    // Verify Phone OTP (either directly pre-verified or passed via otpCode)
+    let phoneIsVerified = await isPhoneVerified(normalizedPhone);
+    if (!phoneIsVerified && otpCode) {
+      const verifyRes = await verifyOtpCode(normalizedPhone, otpCode);
+      if (verifyRes.success) {
+        phoneIsVerified = true;
+      }
+    }
+
+    if (!phoneIsVerified) {
+      return NextResponse.json(
+        { error: 'মোবাইল নম্বরটি ওটিপি (OTP) দ্বারা যাচাই করা হয়নি। অনুগ্রহ করে ওটিপি যাচাই সম্পন্ন করুন।' },
+        { status: 400 }
+      );
+    }
+
+    const existingEmailUser = await db.user.findUnique({
       where: { email: email.toLowerCase() },
     });
 
-    if (existingUser) {
-      return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 400 });
+    if (existingEmailUser) {
+      return NextResponse.json({ error: 'এই ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট রয়েছে।' }, { status: 400 });
+    }
+
+    const existingPhoneUser = await db.user.findFirst({
+      where: { phone: normalizedPhone },
+    });
+
+    if (existingPhoneUser) {
+      return NextResponse.json({ error: 'এই মোবাইল নম্বর দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট রয়েছে।' }, { status: 400 });
     }
 
     const passwordHash = await hashPassword(password);
@@ -28,7 +58,7 @@ export async function POST(request: Request) {
       data: {
         name,
         email: email.toLowerCase(),
-        phone,
+        phone: normalizedPhone,
         passwordHash,
         role: 'PATIENT',
       },

@@ -210,17 +210,13 @@ export default function AiAssistantChat() {
     const minTypingDuration = 800; // Guaranteed 800ms minimum typing animation duration
 
     try {
-      const response = await fetch(
-        'https://persevere-tripping-plywood.ngrok-free.dev/webhook/website',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': 'true',
-          },
-          body: JSON.stringify({ message: text }),
-        }
-      );
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: text }),
+      });
 
       const data = await response.json();
       console.log('Bot response:', data);
