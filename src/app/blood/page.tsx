@@ -21,6 +21,7 @@ import {
   Loader2
 } from 'lucide-react';
 import DonorRegistrationModal from '@/components/DonorRegistrationModal';
+import { FALLBACK_DONORS } from '@/lib/staticHospitalData';
 
 interface BloodDonor {
   id: string;
@@ -50,8 +51,8 @@ interface UserSessionInfo {
 }
 
 export default function BloodDonorDirectoryPage() {
-  const [donors, setDonors] = useState<BloodDonor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [donors, setDonors] = useState<BloodDonor[]>(FALLBACK_DONORS as any);
+  const [loading, setLoading] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState('All');
   const [selectedArea, setSelectedArea] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -143,8 +144,24 @@ export default function BloodDonorDirectoryPage() {
 
       const res = await fetch(`/api/blood?${params.toString()}`);
       const data = await res.json();
-      if (data.success) {
-        setDonors(data.donors || []);
+      if (data.success && data.donors && data.donors.length > 0) {
+        setDonors(data.donors);
+      } else {
+        // Fallback filtering on client
+        const filtered = FALLBACK_DONORS.filter((donor) => {
+          if (selectedGroup !== 'All' && donor.bloodGroup !== selectedGroup) return false;
+          if (selectedArea !== 'All' && donor.area !== selectedArea) return false;
+          if (searchQuery.trim() !== '') {
+            const term = searchQuery.trim().toLowerCase();
+            return (
+              donor.fullName.toLowerCase().includes(term) ||
+              donor.address.toLowerCase().includes(term) ||
+              (donor.note && donor.note.toLowerCase().includes(term))
+            );
+          }
+          return true;
+        });
+        setDonors(filtered as any);
       }
     } catch (err) {
       console.error('Failed to fetch blood donors:', err);

@@ -69,13 +69,15 @@ export default async function DoctorsPage({ searchParams }: PageProps) {
       const matchQuery =
         !query ||
         doc.name.toLowerCase().includes(query) ||
-        doc.specialization.toLowerCase().includes(query) ||
-        doc.department.nameEn.toLowerCase().includes(query) ||
-        doc.hospital.name.toLowerCase().includes(query);
+        (doc.specialization && doc.specialization.toLowerCase().includes(query)) ||
+        (doc.department?.nameEn && doc.department.nameEn.toLowerCase().includes(query)) ||
+        (doc.department?.nameBn && doc.department.nameBn.toLowerCase().includes(query)) ||
+        (doc.hospital?.name && doc.hospital.name.toLowerCase().includes(query));
       const matchSpecialty =
         !specialtyFilter ||
-        doc.specialization.toLowerCase().includes(specialtyFilter) ||
-        doc.department.nameEn.toLowerCase().includes(specialtyFilter);
+        (doc.specialization && doc.specialization.toLowerCase().includes(specialtyFilter)) ||
+        (doc.department?.nameEn && doc.department.nameEn.toLowerCase().includes(specialtyFilter)) ||
+        (doc.department?.nameBn && doc.department.nameBn.toLowerCase().includes(specialtyFilter));
       return matchQuery && matchSpecialty;
     });
   }
