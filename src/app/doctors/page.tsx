@@ -25,9 +25,11 @@ interface PageProps {
   };
 }
 
+import { FALLBACK_DOCTORS } from '@/lib/staticHospitalData';
+
 export default async function DoctorsPage({ searchParams }: PageProps) {
-  const query = searchParams?.q || '';
-  const specialtyFilter = searchParams?.specialty || '';
+  const query = (searchParams?.q || '').toLowerCase();
+  const specialtyFilter = (searchParams?.specialty || '').toLowerCase();
 
   let doctors: any[] = [];
 
@@ -59,6 +61,23 @@ export default async function DoctorsPage({ searchParams }: PageProps) {
     doctors = dbDoctors || [];
   } catch (err) {
     console.error('Error fetching doctors on Vercel:', err);
+  }
+
+  if (doctors.length === 0) {
+    doctors = FALLBACK_DOCTORS.filter((doc) => {
+      if (!query && !specialtyFilter) return true;
+      const matchQuery =
+        !query ||
+        doc.name.toLowerCase().includes(query) ||
+        doc.specialization.toLowerCase().includes(query) ||
+        doc.department.nameEn.toLowerCase().includes(query) ||
+        doc.hospital.name.toLowerCase().includes(query);
+      const matchSpecialty =
+        !specialtyFilter ||
+        doc.specialization.toLowerCase().includes(specialtyFilter) ||
+        doc.department.nameEn.toLowerCase().includes(specialtyFilter);
+      return matchQuery && matchSpecialty;
+    });
   }
 
   return (
