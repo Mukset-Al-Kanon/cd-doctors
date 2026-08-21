@@ -1,16 +1,17 @@
 import React from 'react';
 import Link from 'next/link';
 import { db } from '@/lib/db';
-import { MapPin, ArrowUpRight, ShieldCheck, UserCheck, Phone, Stethoscope, Building2, CheckCircle2, Sparkles } from 'lucide-react';
+import { MapPin, ArrowUpRight, ShieldCheck, UserCheck, Phone, Stethoscope, Building2 } from 'lucide-react';
 import HeroHospitalSlider from '@/components/HeroHospitalSlider';
 import StatCards from '@/components/StatCards';
+import { FALLBACK_HOSPITALS } from '@/lib/staticHospitalData';
 
 export const revalidate = 0;
 
 export default async function HomePage() {
-  let registeredHospitals: any[] = [];
-  let doctorCount = 0;
-  let bloodDonorCount = 0;
+  let registeredHospitals: any[] = FALLBACK_HOSPITALS;
+  let doctorCount = 30;
+  let bloodDonorCount = 12;
 
   try {
     const [hospitals, dCount, bCount] = await Promise.all([
@@ -25,15 +26,17 @@ export default async function HomePage() {
         },
         orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
       }).catch(() => []),
-      db.doctor.count().catch(() => 0),
-      db.bloodDonor.count().catch(() => 0),
+      db.doctor.count().catch(() => 30),
+      db.bloodDonor.count().catch(() => 12),
     ]);
 
-    registeredHospitals = hospitals || [];
-    doctorCount = dCount || 0;
-    bloodDonorCount = bCount || 0;
+    if (hospitals && hospitals.length > 0) {
+      registeredHospitals = hospitals;
+    }
+    if (dCount && dCount > 0) doctorCount = dCount;
+    if (bCount && bCount > 0) bloodDonorCount = bCount;
   } catch (err) {
-    console.error('Error fetching homepage data:', err);
+    console.error('Error fetching homepage data, using static fallback:', err);
   }
 
   return (

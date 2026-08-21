@@ -26,32 +26,40 @@ interface PageProps {
 }
 
 export default async function DoctorsPage({ searchParams }: PageProps) {
-  const query = searchParams.q || '';
-  const specialtyFilter = searchParams.specialty || '';
+  const query = searchParams?.q || '';
+  const specialtyFilter = searchParams?.specialty || '';
 
-  const doctors = await db.doctor.findMany({
-    where: {
-      status: 'ACTIVE',
-      hospital: { 
-        status: { in: ['ACTIVE', 'APPROVED'] }, 
-        district: { slug: 'chuadanga' } 
+  let doctors: any[] = [];
+
+  try {
+    const dbDoctors = await db.doctor.findMany({
+      where: {
+        status: 'ACTIVE',
+        hospital: { 
+          status: { in: ['ACTIVE', 'APPROVED'] }, 
+          district: { slug: 'chuadanga' } 
+        },
+        OR: query || specialtyFilter
+          ? [
+              { name: { contains: query } },
+              { specialization: { contains: query || specialtyFilter } },
+              { degrees: { contains: query } },
+              { department: { nameEn: { contains: query || specialtyFilter } } },
+            ]
+          : undefined,
       },
-      OR: query || specialtyFilter
-        ? [
-            { name: { contains: query } },
-            { specialization: { contains: query || specialtyFilter } },
-            { degrees: { contains: query } },
-            { department: { nameEn: { contains: query || specialtyFilter } } },
-          ]
-        : undefined,
-    },
-    include: {
-      hospital: { include: { district: true } },
-      department: true,
-      schedules: true,
-    },
-    orderBy: { experienceYears: 'desc' },
-  });
+      include: {
+        hospital: { include: { district: true } },
+        department: true,
+        schedules: true,
+      },
+      orderBy: { experienceYears: 'desc' },
+    }).catch(() => []);
+
+    doctors = dbDoctors || [];
+  } catch (err) {
+    console.error('Error fetching doctors on Vercel:', err);
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50/70 via-sky-50/30 to-slate-50/60 py-10">
