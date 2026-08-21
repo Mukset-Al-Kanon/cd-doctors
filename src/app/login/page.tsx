@@ -827,12 +827,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Security Badge */}
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-400">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Alpha SMS দ্বারা সুরক্ষিত ওটিপি ভেরিফিকেশন</span>
-          </div>
-
         </div>
       </div>
     </div>
