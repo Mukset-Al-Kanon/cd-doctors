@@ -442,27 +442,25 @@ export default function LoginPage() {
               ======================================================== */}
           {activeTab === 'LOGIN' && (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
-              {/* Phone Input with Hover & Focus Ring */}
+              {/* Integrated Phone Input */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <span>মোবাইল নম্বর</span>
-                </label>
-                <div className="relative flex items-center group/phone">
-                  <span className="absolute left-3 text-xs font-black text-slate-500 select-none bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs group-hover/phone:border-sky-300 group-focus-within/phone:border-sky-500 transition-colors">
-                    +88
-                  </span>
+                <label className="text-xs font-bold text-slate-700">মোবাইল নম্বর</label>
+                <div className="flex items-center rounded-2xl bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-slate-300 focus-within:border-sky-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-sky-500/10 focus-within:shadow-md shadow-2xs transition-all duration-300 overflow-hidden group">
+                  <div className="flex items-center gap-1 px-3.5 py-3 bg-slate-100/70 border-r border-slate-200/90 select-none shrink-0 group-hover:bg-slate-100 transition-colors">
+                    <span className="text-xs font-black text-slate-600 tracking-wide">+88</span>
+                  </div>
                   <input
                     type="tel"
                     value={loginPhone}
                     onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
                     placeholder="01XXXXXXXXX"
                     required
-                    className="w-full pl-18 pr-4 py-3 bg-slate-50/80 hover:bg-white border border-slate-200 hover:border-slate-300 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-500/10 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 shadow-2xs hover:shadow-xs focus:shadow-md transition-all duration-300 ease-out"
+                    className="w-full px-3.5 py-3 bg-transparent text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
                   />
                 </div>
               </div>
 
-              {/* Password Input with Smooth Hover */}
+              {/* Integrated Password Input */}
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
                   <label className="text-xs font-bold text-slate-700">পাসওয়ার্ড</label>
@@ -479,20 +477,22 @@ export default function LoginPage() {
                     পাসওয়ার্ড ভুলে গেছেন?
                   </button>
                 </div>
-                <div className="relative flex items-center group/pass">
-                  <Lock className="w-4 h-4 text-slate-400 group-hover/pass:text-sky-500 group-focus-within/pass:text-sky-600 absolute left-3.5 pointer-events-none transition-colors duration-200" />
+                <div className="flex items-center rounded-2xl bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-slate-300 focus-within:border-sky-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-sky-500/10 focus-within:shadow-md shadow-2xs transition-all duration-300 overflow-hidden group">
+                  <div className="pl-3.5 pr-2 py-3 text-slate-400 group-focus-within:text-sky-600 transition-colors shrink-0">
+                    <Lock className="w-4 h-4" />
+                  </div>
                   <input
                     type={showLoginPassword ? 'text' : 'password'}
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="আপনার পাসওয়ার্ড দিন"
                     required
-                    className="w-full pl-10 pr-11 py-3 bg-slate-50/80 hover:bg-white border border-slate-200 hover:border-slate-300 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-500/10 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 shadow-2xs hover:shadow-xs focus:shadow-md transition-all duration-300 ease-out"
+                    className="w-full pr-2 py-3 bg-transparent text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setShowLoginPassword(!showLoginPassword)}
-                    className="absolute right-3.5 text-slate-400 hover:text-sky-600 hover:scale-110 active:scale-95 transition-all p-1"
+                    className="pr-3.5 pl-2 text-slate-400 hover:text-sky-600 hover:scale-110 active:scale-95 transition-all"
                   >
                     {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -505,9 +505,7 @@ export default function LoginPage() {
                 disabled={loading}
                 className="group/btn relative w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 hover:from-sky-700 hover:via-sky-600 hover:to-sky-700 text-white font-black text-xs sm:text-sm shadow-md hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300 ease-out flex items-center justify-center gap-2 overflow-hidden disabled:opacity-50"
               >
-                {/* Light Shimmer Sweep */}
                 <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-in-out pointer-events-none" />
-                
                 {loading ? (
                   <span className="relative z-10 inline-flex items-center gap-2">
                     <RotateCcw className="w-4 h-4 animate-spin" /> লগইন হচ্ছে...
@@ -529,56 +527,60 @@ export default function LoginPage() {
             <form onSubmit={handleSendRegistrationOtp} className="space-y-4">
               {/* Full Name */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">আপনার পুরো নাম</label>
-                <div className="relative flex items-center group/name">
-                  <User className="w-4 h-4 text-slate-400 group-hover/name:text-sky-500 group-focus-within/name:text-sky-600 absolute left-3.5 pointer-events-none transition-colors duration-200" />
+                <label className="text-xs font-bold text-slate-700">পুরো নাম</label>
+                <div className="flex items-center rounded-2xl bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-slate-300 focus-within:border-sky-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-sky-500/10 focus-within:shadow-md shadow-2xs transition-all duration-300 overflow-hidden group">
+                  <div className="pl-3.5 pr-2 py-3 text-slate-400 group-focus-within:text-sky-600 transition-colors shrink-0">
+                    <User className="w-4 h-4" />
+                  </div>
                   <input
                     type="text"
                     value={regName}
                     onChange={(e) => setRegName(e.target.value)}
-                    placeholder="যেমন: মোঃ সাকিব হোসেন"
+                    placeholder="আপনার পুরো নাম লিখুন"
                     required
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50/80 hover:bg-white border border-slate-200 hover:border-slate-300 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-500/10 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 shadow-2xs hover:shadow-xs focus:shadow-md transition-all duration-300 ease-out"
+                    className="w-full pr-4 py-3 bg-transparent text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
                   />
                 </div>
               </div>
 
-              {/* Mobile Phone */}
+              {/* Integrated Phone Input */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">মোবাইল নম্বর (ওটিপি পাঠানো হবে)</label>
-                <div className="relative flex items-center group/regphone">
-                  <span className="absolute left-3 text-xs font-black text-slate-500 select-none bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs group-hover/regphone:border-sky-300 group-focus-within/regphone:border-sky-500 transition-colors">
-                    +88
-                  </span>
+                <label className="text-xs font-bold text-slate-700">মোবাইল নম্বর</label>
+                <div className="flex items-center rounded-2xl bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-slate-300 focus-within:border-sky-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-sky-500/10 focus-within:shadow-md shadow-2xs transition-all duration-300 overflow-hidden group">
+                  <div className="flex items-center gap-1 px-3.5 py-3 bg-slate-100/70 border-r border-slate-200/90 select-none shrink-0 group-hover:bg-slate-100 transition-colors">
+                    <span className="text-xs font-black text-slate-600 tracking-wide">+88</span>
+                  </div>
                   <input
                     type="tel"
                     value={regPhone}
                     onChange={(e) => setRegPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
                     placeholder="01XXXXXXXXX"
                     required
-                    className="w-full pl-18 pr-4 py-3 bg-slate-50/80 hover:bg-white border border-slate-200 hover:border-slate-300 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-500/10 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 shadow-2xs hover:shadow-xs focus:shadow-md transition-all duration-300 ease-out"
+                    className="w-full px-3.5 py-3 bg-transparent text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
                   />
                 </div>
               </div>
 
-              {/* Password */}
+              {/* Integrated Password */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">পাসওয়ার্ড (ন্যূনতম ৬ অক্ষর)</label>
-                <div className="relative flex items-center group/regpass">
-                  <Lock className="w-4 h-4 text-slate-400 group-hover/regpass:text-sky-500 group-focus-within/regpass:text-sky-600 absolute left-3.5 pointer-events-none transition-colors duration-200" />
+                <label className="text-xs font-bold text-slate-700">নতুন পাসওয়ার্ড</label>
+                <div className="flex items-center rounded-2xl bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-slate-300 focus-within:border-sky-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-sky-500/10 focus-within:shadow-md shadow-2xs transition-all duration-300 overflow-hidden group">
+                  <div className="pl-3.5 pr-2 py-3 text-slate-400 group-focus-within:text-sky-600 transition-colors shrink-0">
+                    <Lock className="w-4 h-4" />
+                  </div>
                   <input
                     type={showRegPassword ? 'text' : 'password'}
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
-                    placeholder="কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন"
+                    placeholder="ন্যূনতম ৬ অক্ষরের পাসওয়ার্ড দিন"
                     required
                     minLength={6}
-                    className="w-full pl-10 pr-11 py-3 bg-slate-50/80 hover:bg-white border border-slate-200 hover:border-slate-300 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-500/10 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 shadow-2xs hover:shadow-xs focus:shadow-md transition-all duration-300 ease-out"
+                    className="w-full pr-2 py-3 bg-transparent text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setShowRegPassword(!showRegPassword)}
-                    className="absolute right-3.5 text-slate-400 hover:text-sky-600 hover:scale-110 active:scale-95 transition-all p-1"
+                    className="pr-3.5 pl-2 text-slate-400 hover:text-sky-600 hover:scale-110 active:scale-95 transition-all"
                   >
                     {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -707,19 +709,20 @@ export default function LoginPage() {
 
               {forgotStep === 'PHONE' ? (
                 <form onSubmit={handleSendForgotOtp} className="space-y-4">
+                  {/* Integrated Phone Input */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">আপনার একাউন্টের মোবাইল নম্বর</label>
-                    <div className="relative flex items-center group/forgotphone">
-                      <span className="absolute left-3 text-xs font-black text-slate-500 select-none bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs group-hover/forgotphone:border-sky-300 group-focus-within/forgotphone:border-sky-500 transition-colors">
-                        +88
-                      </span>
+                    <label className="text-xs font-bold text-slate-700">একাউন্টের মোবাইল নম্বর</label>
+                    <div className="flex items-center rounded-2xl bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-slate-300 focus-within:border-sky-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-sky-500/10 focus-within:shadow-md shadow-2xs transition-all duration-300 overflow-hidden group">
+                      <div className="flex items-center gap-1 px-3.5 py-3 bg-slate-100/70 border-r border-slate-200/90 select-none shrink-0 group-hover:bg-slate-100 transition-colors">
+                        <span className="text-xs font-black text-slate-600 tracking-wide">+88</span>
+                      </div>
                       <input
                         type="tel"
                         value={forgotPhone}
                         onChange={(e) => setForgotPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
                         placeholder="01XXXXXXXXX"
                         required
-                        className="w-full pl-18 pr-4 py-3 bg-slate-50/80 hover:bg-white border border-slate-200 hover:border-slate-300 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-500/10 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 shadow-2xs hover:shadow-xs focus:shadow-md transition-all duration-300 ease-out"
+                        className="w-full px-3.5 py-3 bg-transparent text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -779,24 +782,26 @@ export default function LoginPage() {
                     ))}
                   </div>
 
-                  {/* New Password */}
+                  {/* Integrated New Password */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">নতুন পাসওয়ার্ড দিন (ন্যূনতম ৬ অক্ষর)</label>
-                    <div className="relative flex items-center group/resetpass">
-                      <Lock className="w-4 h-4 text-slate-400 group-hover/resetpass:text-sky-500 group-focus-within/resetpass:text-sky-600 absolute left-3.5 pointer-events-none transition-colors duration-200" />
+                    <label className="text-xs font-bold text-slate-700">নতুন পাসওয়ার্ড</label>
+                    <div className="flex items-center rounded-2xl bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-slate-300 focus-within:border-sky-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-sky-500/10 focus-within:shadow-md shadow-2xs transition-all duration-300 overflow-hidden group">
+                      <div className="pl-3.5 pr-2 py-3 text-slate-400 group-focus-within:text-sky-600 transition-colors shrink-0">
+                        <Lock className="w-4 h-4" />
+                      </div>
                       <input
                         type={showForgotNewPassword ? 'text' : 'password'}
                         value={forgotNewPassword}
                         onChange={(e) => setForgotNewPassword(e.target.value)}
-                        placeholder="আপনার নতুন পাসওয়ার্ড দিন"
+                        placeholder="ন্যূনতম ৬ অক্ষরের নতুন পাসওয়ার্ড"
                         required
                         minLength={6}
-                        className="w-full pl-10 pr-11 py-3 bg-slate-50/80 hover:bg-white border border-slate-200 hover:border-slate-300 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-500/10 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 shadow-2xs hover:shadow-xs focus:shadow-md transition-all duration-300 ease-out"
+                        className="w-full pr-2 py-3 bg-transparent text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
                       />
                       <button
                         type="button"
                         onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
-                        className="absolute right-3.5 text-slate-400 hover:text-sky-600 hover:scale-110 active:scale-95 transition-all p-1"
+                        className="pr-3.5 pl-2 text-slate-400 hover:text-sky-600 hover:scale-110 active:scale-95 transition-all"
                       >
                         {showForgotNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
