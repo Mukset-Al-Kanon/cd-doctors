@@ -52,7 +52,7 @@ export default async function DistrictsPage() {
       </div>
 
       <div className="space-y-10">
-        {divisions.map((division) => (
+        {divisions.map((division: any) => (
           <div key={division.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <MapPin className="w-5 h-5 text-medical-600" />
@@ -62,7 +62,7 @@ export default async function DistrictsPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {division.districts.map((dist) => (
+              {division.districts?.map((dist: any) => (
                 <Link
                   key={dist.id}
                   href={`/hospitals?district=${dist.slug}`}
@@ -72,7 +72,7 @@ export default async function DistrictsPage() {
                     <h3 className="font-semibold text-xs text-slate-800 group-hover:text-medical-700">
                       {dist.nameEn} ({dist.nameBn})
                     </h3>
-                    <p className="text-[10px] text-slate-500">{dist._count.hospitals} Hospitals</p>
+                    <p className="text-[10px] text-slate-500">{dist._count?.hospitals || 0} Hospitals</p>
                   </div>
                   <Building2 className="w-4 h-4 text-slate-400 group-hover:text-medical-600" />
                 </Link>

@@ -121,17 +121,17 @@ export default async function HospitalProfilePage({ params }: PageProps) {
               <h2 className="text-2xl font-black text-nuvicaNavy-900 tracking-tight">Specialist Doctors</h2>
             </div>
             <span className="text-xs font-extrabold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-              {hospital.doctors.length} Doctors Available
+              {(hospital.doctors || []).length} Doctors Available
             </span>
           </div>
 
-          {hospital.doctors.length === 0 ? (
+          {(!hospital.doctors || hospital.doctors.length === 0) ? (
             <div className="bg-white rounded-3xl p-8 text-center border border-slate-200 text-slate-500 text-sm font-medium shadow-sm">
               No doctors scheduled for this hospital currently.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-              {hospital.doctors.map((doc) => {
+              {hospital.doctors.map((doc: any) => {
                 const availableDayNamesSet = new Set<string>(
                   doc.schedules && doc.schedules.length > 0
                     ? doc.schedules.map((s: any) => DAYS_MAP[s.dayOfWeek])
