@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     // Verify OTP Code
     const verifyResult = await verifyOtpCode(normalizedPhone, otpCode);
     if (!verifyResult.success) {
-      return NextResponse.json({ error: verifyResult.error || 'ভুল বা মেয়াদোত্তীর্ণ ওটিপি কোড।' }, { status: 400 });
+      return NextResponse.json({ error: (verifyResult as any).error || verifyResult.message || 'ভুল বা মেয়াদোত্তীর্ণ ওটিপি কোড।' }, { status: 400 });
     }
 
     const passwordHash = await hashPassword(newPassword);

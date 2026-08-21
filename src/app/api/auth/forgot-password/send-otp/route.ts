@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { normalizeBdPhoneNumber, sendPhoneOtp } from '@/lib/otpService';
+import { normalizeBdPhoneNumber, generateAndSendOtp } from '@/lib/otpService';
 
 export async function POST(request: Request) {
   try {
@@ -34,10 +34,10 @@ export async function POST(request: Request) {
     }
 
     // Always dispatch OTP
-    const otpResult = await sendPhoneOtp(normalizedPhone);
+    const otpResult = await generateAndSendOtp(normalizedPhone);
 
     if (!otpResult.success) {
-      return NextResponse.json({ error: otpResult.error || 'ওটিপি পাঠাতে সমস্যা হয়েছে।' }, { status: 500 });
+      return NextResponse.json({ error: otpResult.message || 'ওটিপি পাঠাতে সমস্যা হয়েছে।' }, { status: 500 });
     }
 
     return NextResponse.json({
