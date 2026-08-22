@@ -32,6 +32,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const {
       name,
       photoUrl,
+      posterUrl,
       degrees,
       specialization,
       bmdcNumber,
@@ -89,6 +90,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       chamberRoom: chamberRoom || existingDoctor.chamberRoom,
       phone: phone || existingDoctor.phone,
       photoUrl: photoUrl || existingDoctor.photoUrl,
+      posterUrl: posterUrl !== undefined ? (posterUrl || null) : (existingDoctor as any).posterUrl,
       status: status || existingDoctor.status,
     };
 

@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     const {
       name,
       photoUrl,
+      posterUrl,
       degrees,
       specialization,
       bmdcNumber,
@@ -116,6 +117,7 @@ export async function POST(request: Request) {
           chamberRoom: chamberRoom || 'Chamber 101',
           phone: phone || '+880 1800-000000',
           photoUrl: photoUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80',
+          posterUrl: posterUrl || null,
           status: status || 'ACTIVE',
         },
       });

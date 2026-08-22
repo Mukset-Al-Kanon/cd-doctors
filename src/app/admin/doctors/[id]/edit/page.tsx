@@ -66,6 +66,7 @@ function EditDoctorForm({ params }: { params: { id: string } }) {
   const [formData, setFormData] = useState({
     name: '',
     photoUrl: '',
+    posterUrl: '',
     degrees: '',
     specialization: '',
     bmdcNumber: '',
@@ -128,6 +129,7 @@ function EditDoctorForm({ params }: { params: { id: string } }) {
         setFormData({
           name: doc.name || '',
           photoUrl: doc.photoUrl || '',
+          posterUrl: doc.posterUrl || '',
           degrees: doc.degrees || '',
           specialization: doc.specialization || '',
           bmdcNumber: doc.bmdcNumber || '',
@@ -164,6 +166,19 @@ function EditDoctorForm({ params }: { params: { id: string } }) {
     reader.onloadend = () => {
       if (reader.result) {
         setFormData((prev) => ({ ...prev, photoUrl: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePosterUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (reader.result) {
+        setFormData((prev) => ({ ...prev, posterUrl: reader.result as string }));
       }
     };
     reader.readAsDataURL(file);
@@ -338,12 +353,12 @@ function EditDoctorForm({ params }: { params: { id: string } }) {
             <div className="space-y-3 text-center sm:text-left flex-1">
               <div>
                 <h4 className="font-extrabold text-sm text-nuvicaNavy-900">{formData.name || 'Dr. Doctor Name'}</h4>
-                <p className="text-xs text-slate-500 font-medium">Clear portrait image with medical apron recommended.</p>
+                <p className="text-xs text-slate-500 font-medium">Clear 1:1 portrait avatar for the website directory card.</p>
               </div>
 
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
                 <label className="cursor-pointer bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all inline-flex items-center gap-2 active:scale-95">
-                  <Upload className="w-4 h-4" /> Upload New Photo File
+                  <Upload className="w-4 h-4" /> Upload New Avatar Photo
                   <input
                     type="file"
                     accept="image/*"
@@ -361,6 +376,78 @@ function EditDoctorForm({ params }: { params: { id: string } }) {
                     Remove Photo
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* 1B. SOCIAL MEDIA CONSULTATION POSTER (FOR n8n FACEBOOK POSTING) */}
+          <div className="bg-gradient-to-br from-indigo-50/70 via-sky-50/50 to-white p-6 rounded-3xl border border-indigo-100/80 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100/70 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse"></span>
+                <h4 className="font-black text-sm text-nuvicaNavy-900 flex items-center gap-2">
+                  মার্কেটিং ও ফেসবুক অটোমেশন কনসালটেশন পোস্টার (HD Poster)
+                </h4>
+              </div>
+              <span className="text-[11px] font-black text-indigo-700 bg-indigo-100/80 px-3 py-1 rounded-full w-fit">
+                🤖 n8n AI Automation Ready
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              💡 <strong>কীভাবে কাজ করবে:</strong> এই হাই-রেজ্যুলেশন পোস্টারটি ওয়েবসাইটে দেখানো হবে না। এটি সেন্ট্রাল ডাটাবেজে সংরক্ষিত থাকবে এবং <strong>n8n AI Agent</strong> প্রতিদিন শিডিউল অনুযায়ী স্বয়ংক্রিয়ভাবে ডাক্তারের চেম্বার শিডিউল, ফোন নম্বর ও ক্যাপশনসহ <strong>CD Doctors ফেসবুক পেজে</strong> পোস্ট করবে।
+            </p>
+
+            <div className="flex flex-col md:flex-row items-center gap-6 pt-2">
+              <div className="w-36 h-48 rounded-2xl border-2 border-indigo-200 overflow-hidden bg-slate-100 shadow-md shrink-0 flex items-center justify-center relative group">
+                {formData.posterUrl ? (
+                  <img
+                    src={formData.posterUrl}
+                    alt="Social Consultation Poster"
+                    className="w-full h-full object-cover object-top"
+                  />
+                ) : (
+                  <div className="text-center p-3 space-y-1 text-slate-400">
+                    <Upload className="w-8 h-8 mx-auto opacity-50 text-indigo-500" />
+                    <p className="text-[10px] font-bold">কোনো পোস্টার যুক্ত নেই</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3 flex-1 w-full text-center md:text-left">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-700">পোস্টার ইমেজ URL (বা নিচে ফাইল আপলোড করুন)</label>
+                  <input
+                    type="url"
+                    name="posterUrl"
+                    value={formData.posterUrl}
+                    onChange={handleInputChange}
+                    placeholder="https://... (পোস্টার ইমেজের সরাসরি লিঙ্ক পেস্ট করুন)"
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                  <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all inline-flex items-center gap-2 active:scale-95">
+                    <Upload className="w-4 h-4" /> পোস্টার ফাইল সিলেক্ট করুন
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePosterUpload}
+                    />
+                  </label>
+
+                  {formData.posterUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, posterUrl: '' })}
+                      className="text-rose-600 hover:text-rose-700 font-bold text-xs px-4 py-2.5 rounded-xl border border-rose-200 hover:bg-rose-50 transition-all"
+                    >
+                      পোস্টার রিমুভ করুন
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

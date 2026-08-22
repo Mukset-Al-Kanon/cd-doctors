@@ -161,9 +161,11 @@ model Doctor {
   consultationFee Int
   chamberRoom     String
   phone           String?
-  photoUrl        String?
-  status          String           @default("ACTIVE")
-  createdAt       DateTime         @default(now())
+  photoUrl           String?
+  posterUrl          String?          // High-resolution social consultation poster/banner for automated Facebook posting
+  lastSocialPostedAt DateTime?        // Timestamp when this doctor was last posted to Facebook by n8n
+  status             String           @default("ACTIVE")
+  createdAt          DateTime         @default(now())
 
   schedules       DoctorSchedule[]
   appointments    Appointment[]
