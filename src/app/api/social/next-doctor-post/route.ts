@@ -77,7 +77,7 @@ function buildEngagingFacebookCaption(doc: any, scheduleSummary: string, profile
   const treatedList = doc.treatedDiseases
     ? doc.treatedDiseases
         .split(',')
-        .map((s: string) => `  ✓ ${s.trim()}`)
+        .map((s: string) => `✓ ${s.trim()}`)
         .filter(Boolean)
         .slice(0, 5)
         .join('\n')
@@ -87,27 +87,27 @@ function buildEngagingFacebookCaption(doc: any, scheduleSummary: string, profile
     .filter((p, i, arr) => Boolean(p) && arr.indexOf(p) === i)
     .join(' | ');
 
-  return `🩺 চুয়াডাঙ্গার বিশেষজ্ঞ চিকিৎসক পরিচিতি 🩺
+  let caption = `${doc.name}
+${doc.degrees || ''}
+বিশেষত্ব: ${doc.specialization}
+হাসপাতাল/চেম্বার: ${doc.hospital?.name || 'চুয়াডাঙ্গা'}
+ঠিকানা: ${doc.hospital?.address || 'চুয়াডাঙ্গা'}
 
-👨‍⚕️ ${doc.name}
-🎓 ডিগ্রি: ${doc.degrees || 'বিশেষজ্ঞ চিকিৎসক'}
-💼 বিশেষত্ব: ${doc.specialization}
-🏢 হাসপাতাল/চেম্বার: ${doc.hospital?.name || 'চুয়াডাঙ্গা'}
-📍 ঠিকানা: ${doc.hospital?.address || 'চুয়াডাঙ্গা'}
-🚪 চেম্বার রুম: ${doc.chamberRoom || 'রুম নম্বর ১০১'}
-📅 রোগী দেখার সময়: ${scheduleSummary || 'সাপ্তাহিক শিডিউল অনুযায়ী'}
-💵 ভিজিট ফি: ৳${doc.consultationFee || 'নির্ধারিত'} টাকা
+রোগী দেখার সময়: ${scheduleSummary || 'সাপ্তাহিক শিডিউল অনুযায়ী'}
 
-📞 সিরিয়ালের জন্য সরাসরি যোগাযোগ করুন:
-📱 ${phones || '01700-000000'}
+সিরিয়ালের জন্য সরাসরি যোগাযোগ করুন:
+${phones || '01700-000000'}
 
 🌐 ডাক্তারের বিস্তারিত প্রোফাইল ও চেম্বার শিডিউল দেখুন:
-👉 ${profileUrl}
-${treatedList ? `\n📌 যেসব রোগের চিকিৎসাসেবা ও পরামর্শ প্রদান করেন:\n${treatedList}\n` : ''}
----
-🏥 চুয়াডাঙ্গার সকল হাসপাতাল, বিশেষজ্ঞ ডাক্তার, ব্লাড ডোনার ও ২৪/৭ জরুরি অ্যাম্বুলেন্সের নির্ভরযোগ্য প্ল্যাটফর্ম — CD Doctors।
+    ${profileUrl}`;
 
-${hashtags.join(' ')}`;
+  if (treatedList) {
+    caption += `\n\n📌 যেসব রোগের চিকিৎসাসেবা ও পরামর্শ প্রদান করেন:\n${treatedList}`;
+  }
+
+  caption += `\n\nচুয়াডাঙ্গার সকল হাসপাতাল, বিশেষজ্ঞ ডাক্তার, ব্লাড ডোনার ও ২৪/৭ জরুরি অ্যাম্বুলেন্সের নির্ভরযোগ্য প্ল্যাটফর্ম — CD Doctors।\n\n${hashtags.join(' ')}`;
+
+  return caption;
 }
 
 export async function GET(request: Request) {
