@@ -255,10 +255,9 @@ export async function GET(request: Request) {
     const hashtags = generateHashtags(doctor.specialization, doctor.hospital?.name || '');
     const suggestedCaption = buildEngagingFacebookCaption(doctor, scheduleSummaryBn, profileUrl, hashtags);
 
-    const firstComment = `💬 যেকোনো ডাক্তার, হাসপাতাল, রক্তের সন্ধান বা স্বাস্থ্যসেবা তথ্যের জন্য আমাদের পেইজে সরাসরি মেসেজ (Inbox) করুন। আমাদের ২৪/৭ স্মার্ট অ্যাসিস্ট্যান্ট আপনাকে তাৎক্ষণিক সঠিক তথ্য ও সহায়তা প্রদান করবে।
+    const firstComment = `চুয়াডাঙ্গাতে ২৪/৭ ডাক্তার, হাসপাতাল, রক্ত বা স্বাস্থ্যসেবা সংক্রান্ত তাৎক্ষণিক যেকোনো তথ্য সেবা পেতে আমাদের পেইজে সরাসরি মেসেজ (Inbox) করুন।
 
-🌐 ওয়েবসাইট: ${baseUrl}
-📞 হেল্পলাইন: +880 761-62588`;
+🌐 ওয়েবসাইট: ${baseUrl}`;
 
     const responsePayload = {
       success: true,

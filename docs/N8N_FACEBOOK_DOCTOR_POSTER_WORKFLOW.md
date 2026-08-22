@@ -308,3 +308,11 @@ When this workflow executes, the following post will appear on your Facebook Pag
 > চুয়াডাঙ্গার সকল হাসপাতাল, বিশেষজ্ঞ ডাক্তার, ব্লাড ডোনার ও ২৪/৭ জরুরি অ্যাম্বুলেন্সের নির্ভরযোগ্য প্ল্যাটফর্ম — CD Doctors।  
 >
 > `#CDDoctors #Chuadanga #DoctorAppointment #Gynaecologist #SonoDiagnostic`
+
+---
+
+### 💬 পিন/টপ কমেন্ট প্রিভিউ:
+
+> চুয়াডাঙ্গাতে ২৪/৭ ডাক্তার, হাসপাতাল, রক্ত বা স্বাস্থ্যসেবা সংক্রান্ত তাৎক্ষণিক যেকোনো তথ্য সেবা পেতে আমাদের পেইজে সরাসরি মেসেজ (Inbox) করুন।  
+> 
+> 🌐 ওয়েবসাইট: https://cddoctors.com
