@@ -524,6 +524,23 @@ export async function POST(request: Request) {
           console.warn('DB update skipped in read-only serverless environment:', updateErr.message);
         }
 
+        if (facebookPostId) {
+          try {
+            await db.socialPostLog.upsert({
+              where: { facebookPostId },
+              update: { postedAt: now, isDeleted: false },
+              create: {
+                doctorId: doctorId,
+                facebookPostId: facebookPostId,
+                postedAt: now,
+                isDeleted: false,
+              },
+            });
+          } catch (logErr: any) {
+            console.warn('Social post log upsert skipped:', logErr.message);
+          }
+        }
+
         try {
           await db.auditLog.create({
             data: {

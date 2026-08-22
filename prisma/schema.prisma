@@ -170,6 +170,20 @@ model Doctor {
   schedules       DoctorSchedule[]
   appointments    Appointment[]
   reviews         Review[]
+  socialPosts     SocialPostLog[]
+}
+
+model SocialPostLog {
+  id             String    @id @default(uuid())
+  doctorId       String?
+  doctor         Doctor?   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  facebookPostId String    @unique
+  postedAt       DateTime  @default(now())
+  isDeleted      Boolean   @default(false)
+  deletedAt      DateTime?
+
+  @@index([postedAt])
+  @@index([isDeleted])
 }
 
 model DoctorSchedule {
