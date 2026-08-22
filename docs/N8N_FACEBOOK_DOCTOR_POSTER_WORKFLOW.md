@@ -62,7 +62,16 @@ Content-Type: application/json
 
 ---
 
-### Node 4: Confirm & Update Rotation (HTTP Request Callback)
+### Node 4: Post Official First Comment (অটোমেটিক কমেন্ট)
+- **Method**: `POST`
+- **URL**: `=https://graph.facebook.com/v19.0/{{ $json.id }}/comments`
+- **Query Parameters**:
+  - `access_token`: `{{ $env.FACEBOOK_PAGE_ACCESS_TOKEN }}`
+  - `message`: `={{ $('Fetch Next Doctor in Rotation').item.json.data.facebook_post.first_comment }}`
+
+---
+
+### Node 5: Confirm & Update Rotation (HTTP Request Callback)
 - **Method**: `POST`
 - **URL**: `https://cddoctors.com/api/social/next-doctor-post`
 - **Headers**:
@@ -72,8 +81,8 @@ Content-Type: application/json
   ```json
   {
     "doctorId": "={{ $('Fetch Next Doctor in Rotation').item.json.data.doctor_id }}",
-    "facebookPostId": "={{ $json.id }}",
-    "notes": "Automated daily scheduled post by n8n"
+    "facebookPostId": "={{ $('Publish to Facebook Page').item.json.id }}",
+    "notes": "Automated daily scheduled post with first comment by n8n"
   }
   ```
 
@@ -85,7 +94,7 @@ You can directly copy the JSON below and paste it into your n8n workflow canvas 
 
 ```json
 {
-  "name": "CD Doctors - Daily Facebook Doctor Poster Auto-Publish",
+  "name": "CD Doctors - Daily Facebook Doctor Poster & Auto-Comment",
   "nodes": [
     {
       "parameters": {
@@ -103,7 +112,7 @@ You can directly copy the JSON below and paste it into your n8n workflow canvas 
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        220,
+        180,
         300
       ]
     },
@@ -126,7 +135,7 @@ You can directly copy the JSON below and paste it into your n8n workflow canvas 
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        460,
+        400,
         300
       ]
     },
@@ -158,7 +167,35 @@ You can directly copy the JSON below and paste it into your n8n workflow canvas 
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        700,
+        620,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{ $json.id }}/comments",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $('Fetch Next Doctor in Rotation').item.json.data.facebook_post.first_comment }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $env.FACEBOOK_PAGE_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-post-comment",
+      "name": "Post Official Top Comment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        840,
         300
       ]
     },
@@ -181,7 +218,7 @@ You can directly copy the JSON below and paste it into your n8n workflow canvas 
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"doctorId\": \"{{ $('Fetch Next Doctor in Rotation').item.json.data.doctor_id }}\",\n  \"facebookPostId\": \"{{ $json.id }}\",\n  \"notes\": \"Automated daily scheduled post by n8n\"\n}",
+        "jsonBody": "={\n  \"doctorId\": \"{{ $('Fetch Next Doctor in Rotation').item.json.data.doctor_id }}\",\n  \"facebookPostId\": \"{{ $('Publish to Facebook Page').item.json.id }}\",\n  \"notes\": \"Automated daily scheduled post with top comment by n8n\"\n}",
         "options": {}
       },
       "id": "http-log-success",
@@ -189,7 +226,7 @@ You can directly copy the JSON below and paste it into your n8n workflow canvas 
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        940,
+        1060,
         300
       ]
     }
@@ -218,6 +255,17 @@ You can directly copy the JSON below and paste it into your n8n workflow canvas 
       ]
     },
     "Publish to Facebook Page": {
+      "main": [
+        [
+          {
+            "node": "Post Official Top Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Official Top Comment": {
       "main": [
         [
           {

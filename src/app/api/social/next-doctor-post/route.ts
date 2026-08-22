@@ -255,6 +255,11 @@ export async function GET(request: Request) {
     const hashtags = generateHashtags(doctor.specialization, doctor.hospital?.name || '');
     const suggestedCaption = buildEngagingFacebookCaption(doctor, scheduleSummaryBn, profileUrl, hashtags);
 
+    const firstComment = `💬 যেকোনো ডাক্তার, হাসপাতাল, রক্তের সন্ধান বা স্বাস্থ্যসেবা তথ্যের জন্য আমাদের পেইজে সরাসরি মেসেজ (Inbox) করুন। আমাদের ২৪/৭ স্মার্ট অ্যাসিস্ট্যান্ট আপনাকে তাৎক্ষণিক সঠিক তথ্য ও সহায়তা প্রদান করবে।
+
+🌐 ওয়েবসাইট: ${baseUrl}
+📞 হেল্পলাইন: +880 761-62588`;
+
     const responsePayload = {
       success: true,
       data: {
@@ -301,6 +306,7 @@ export async function GET(request: Request) {
         },
         facebook_post: {
           caption: suggestedCaption,
+          first_comment: firstComment,
           hashtags: hashtags,
           image_url: posterUrl,
         },
