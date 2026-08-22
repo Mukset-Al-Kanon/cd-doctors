@@ -112,6 +112,14 @@ ${phones || '01700-000000'}
 
 export async function GET(request: Request) {
   try {
+    // Self-healing database schema check for Vercel Serverless environment
+    try {
+      await db.$executeRawUnsafe(`ALTER TABLE "Doctor" ADD COLUMN "posterUrl" TEXT;`);
+    } catch (e) {}
+    try {
+      await db.$executeRawUnsafe(`ALTER TABLE "Doctor" ADD COLUMN "lastSocialPostedAt" DATETIME;`);
+    } catch (e) {}
+
     const { searchParams } = new URL(request.url);
     const apiKey = request.headers.get('x-api-key') || 
                    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || 
@@ -397,6 +405,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    try {
+      await db.$executeRawUnsafe(`ALTER TABLE "Doctor" ADD COLUMN "posterUrl" TEXT;`);
+    } catch (e) {}
+    try {
+      await db.$executeRawUnsafe(`ALTER TABLE "Doctor" ADD COLUMN "lastSocialPostedAt" DATETIME;`);
+    } catch (e) {}
+
     const apiKey = request.headers.get('x-api-key') || 
                    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
 
