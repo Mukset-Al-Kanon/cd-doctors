@@ -5,26 +5,40 @@ import fs from 'fs';
 // Resolve SQLite DATABASE_URL accurately across Vercel Lambda Serverless environments
 if (!process.env.DATABASE_URL || process.env.DATABASE_URL.startsWith('file:')) {
   const cwd = process.cwd();
-  const potentialPaths = [
-    path.join(cwd, 'prisma', 'dev.db'),
-    path.join(cwd, 'dev.db'),
-    path.join('/var/task', 'prisma', 'dev.db'),
-    path.join('/var/task', 'dev.db'),
-    path.resolve('./prisma/dev.db'),
-    path.resolve('./dev.db'),
-  ];
+  const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 
-  let foundDb = false;
-  for (const p of potentialPaths) {
-    if (fs.existsSync(p)) {
-      process.env.DATABASE_URL = `file:${p}`;
-      foundDb = true;
-      break;
+  if (isVercel) {
+    const tmpDbPath = path.join('/tmp', 'dev.db');
+    const sourceDbPaths = [
+      path.join(cwd, 'prisma', 'dev.db'),
+      path.join(cwd, 'dev.db'),
+      path.join('/var/task', 'prisma', 'dev.db'),
+      path.join('/var/task', 'dev.db'),
+    ];
+
+    const sourceDb = sourceDbPaths.find((p) => fs.existsSync(p));
+    if (sourceDb && !fs.existsSync(tmpDbPath)) {
+      try {
+        fs.copyFileSync(sourceDb, tmpDbPath);
+      } catch (e) {
+        console.error('Failed to copy SQLite DB to /tmp:', e);
+      }
     }
-  }
 
-  if (!foundDb) {
-    process.env.DATABASE_URL = `file:${path.join(cwd, 'prisma', 'dev.db')}`;
+    if (fs.existsSync(tmpDbPath)) {
+      process.env.DATABASE_URL = `file:${tmpDbPath}`;
+    } else if (sourceDb) {
+      process.env.DATABASE_URL = `file:${sourceDb}`;
+    }
+  } else {
+    const potentialPaths = [
+      path.join(cwd, 'prisma', 'dev.db'),
+      path.join(cwd, 'dev.db'),
+      path.resolve('./prisma/dev.db'),
+      path.resolve('./dev.db'),
+    ];
+    const found = potentialPaths.find((p) => fs.existsSync(p));
+    process.env.DATABASE_URL = `file:${found || path.join(cwd, 'prisma', 'dev.db')}`;
   }
 }
 
