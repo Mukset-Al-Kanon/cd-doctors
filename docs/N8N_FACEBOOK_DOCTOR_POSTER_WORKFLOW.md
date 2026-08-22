@@ -33,9 +33,10 @@ Content-Type: application/json
 
 ## 🛠️ 3. Detailed Step-by-Step Node Configuration in n8n
 
-### Node 1: Schedule Trigger (শিডিউল ট্রিগার)
-- **Trigger Interval**: Days / Hours
-- **Example Schedule**: Every day at `09:00` (Morning) and `17:00` (Afternoon).
+### Node 1: Schedule Trigger (শিডিউল ট্রিগার - প্রতি ১ ঘণ্টা পর পর)
+- **Trigger Interval**: Hours
+- **Interval Setting**: Every `1` hour (`hoursInterval: 1`)
+- **কার্যপদ্ধতি**: দিনে প্রতি ১ ঘণ্টা পর পর স্বয়ংক্রিয়ভাবে এক্সিকিউট হবে এবং প্রতিটি হাসপাতাল থেকে ১টি ১টি করে ডাক্তার নিয়ে দিনে মোট ২টি করে ডাক্তার চক্রাকারে পোস্ট করবে।
 
 ---
 
@@ -48,6 +49,7 @@ Content-Type: application/json
 - **Output Data**:
   - `{{ $json.data.facebook_post.image_url }}`: High-res poster URL.
   - `{{ $json.data.facebook_post.caption }}`: Pre-crafted Bengali caption with doctor degrees, chamber time, phone numbers & hashtags.
+  - `{{ $json.data.facebook_post.first_comment }}`: Pre-crafted pinned/top comment.
   - `{{ $json.data.doctor_id }}`: Doctor unique ID.
 
 ---
@@ -82,7 +84,7 @@ Content-Type: application/json
   {
     "doctorId": "={{ $('Fetch Next Doctor in Rotation').item.json.data.doctor_id }}",
     "facebookPostId": "={{ $('Publish to Facebook Page').item.json.id }}",
-    "notes": "Automated daily scheduled post with first comment by n8n"
+    "notes": "Automated 1-hour interval post with top comment by n8n"
   }
   ```
 
@@ -94,7 +96,7 @@ You can directly copy the JSON below and paste it into your n8n workflow canvas 
 
 ```json
 {
-  "name": "CD Doctors - Daily Facebook Doctor Poster & Auto-Comment",
+  "name": "CD Doctors - Hourly Facebook Doctor Poster & Auto-Comment",
   "nodes": [
     {
       "parameters": {
@@ -102,13 +104,13 @@ You can directly copy the JSON below and paste it into your n8n workflow canvas 
           "interval": [
             {
               "field": "hours",
-              "hoursInterval": 8
+              "hoursInterval": 1
             }
           ]
         }
       },
       "id": "schedule-trigger-1",
-      "name": "Daily Schedule Trigger",
+      "name": "Hourly Schedule Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [

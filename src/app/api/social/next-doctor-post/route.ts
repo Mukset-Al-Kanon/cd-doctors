@@ -164,7 +164,7 @@ export async function GET(request: Request) {
       });
     }
 
-    // 2. Query next eligible doctor
+    // 2. Query next eligible doctor using Hospital-Balanced Round-Robin
     let doctor = null;
 
     if (doctorId) {
@@ -176,20 +176,14 @@ export async function GET(request: Request) {
           schedules: true,
         },
       });
-    } else {
-      // Find active doctor with posterUrl, prioritized by earliest lastSocialPostedAt (nulls first)
-      const whereClause: any = {
-        status: 'ACTIVE',
-        posterUrl: { not: null },
-      };
-
-      if (hospitalId) {
-        whereClause.hospitalId = hospitalId;
-      }
-
-      // First try to find a doctor with posterUrl
+    } else if (hospitalId) {
+      // Specific hospital requested
       doctor = await db.doctor.findFirst({
-        where: whereClause,
+        where: {
+          status: 'ACTIVE',
+          posterUrl: { not: null },
+          hospitalId: hospitalId,
+        },
         include: {
           hospital: true,
           department: true,
@@ -200,13 +194,52 @@ export async function GET(request: Request) {
           { createdAt: 'asc' },
         ],
       });
-
-      // Fallback: If no doctor with posterUrl found, pick any active doctor
       if (!doctor) {
         doctor = await db.doctor.findFirst({
+          where: { status: 'ACTIVE', hospitalId: hospitalId },
+          include: { hospital: true, department: true, schedules: true },
+          orderBy: [{ lastSocialPostedAt: 'asc' }, { createdAt: 'asc' }],
+        });
+      }
+    } else {
+      // HOSPITAL-BALANCED ROUND-ROBIN (1 post per hour, 2 posts per hospital per day):
+      const activeHospitals = await db.hospital.findMany({
+        where: { status: 'ACTIVE' },
+        include: {
+          doctors: {
+            where: { status: 'ACTIVE' },
+            select: { id: true, lastSocialPostedAt: true, posterUrl: true },
+          },
+        },
+      });
+
+      const hospitalCandidates: Array<{
+        hospitalId: string;
+        hospitalName: string;
+        hospitalLastPostTime: number;
+        nextDoctor: any;
+      }> = [];
+
+      for (const hosp of activeHospitals) {
+        if (!hosp.doctors || hosp.doctors.length === 0) continue;
+
+        // Calculate the most recent social post time for this entire hospital
+        let hospitalMaxPostTime = 0;
+        for (const d of hosp.doctors) {
+          if (d.lastSocialPostedAt) {
+            const t = new Date(d.lastSocialPostedAt).getTime();
+            if (t > hospitalMaxPostTime) {
+              hospitalMaxPostTime = t;
+            }
+          }
+        }
+
+        // Priority 1: Next doctor with posterUrl in this hospital
+        let nextDoc = await db.doctor.findFirst({
           where: {
             status: 'ACTIVE',
-            ...(hospitalId ? { hospitalId } : {}),
+            hospitalId: hosp.id,
+            posterUrl: { not: null },
           },
           include: {
             hospital: true,
@@ -218,6 +251,41 @@ export async function GET(request: Request) {
             { createdAt: 'asc' },
           ],
         });
+
+        // Priority 2: Fallback to any active doctor in this hospital
+        if (!nextDoc) {
+          nextDoc = await db.doctor.findFirst({
+            where: {
+              status: 'ACTIVE',
+              hospitalId: hosp.id,
+            },
+            include: {
+              hospital: true,
+              department: true,
+              schedules: true,
+            },
+            orderBy: [
+              { lastSocialPostedAt: 'asc' },
+              { createdAt: 'asc' },
+            ],
+          });
+        }
+
+        if (nextDoc) {
+          hospitalCandidates.push({
+            hospitalId: hosp.id,
+            hospitalName: hosp.name,
+            hospitalLastPostTime: hospitalMaxPostTime,
+            nextDoctor: nextDoc,
+          });
+        }
+      }
+
+      // Sort hospitals by least recently posted (lowest hospitalMaxPostTime / 0 first)
+      hospitalCandidates.sort((a, b) => a.hospitalLastPostTime - b.hospitalLastPostTime);
+
+      if (hospitalCandidates.length > 0) {
+        doctor = hospitalCandidates[0].nextDoctor;
       }
     }
 
