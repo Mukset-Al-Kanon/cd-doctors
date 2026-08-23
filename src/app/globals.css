@@ -310,3 +310,80 @@ h1, h2, h3, h4, h5, h6 {
 .accordion-smooth-wrapper.open-page .accordion-smooth-inner {
   transform: translateY(0);
 }
+
+/* Highly Professional Smooth Modal Spring Animation */
+@keyframes modalSmoothIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(24px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.015) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modalBackdropFadeIn {
+  0% {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    backdrop-filter: blur(16px);
+  }
+}
+
+.animate-modal-backdrop {
+  animation: modalBackdropFadeIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, backdrop-filter;
+}
+
+.animate-modal-spring {
+  animation: modalSmoothIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* ✨ SILKY SMOOTH LUXURY PAGE TRANSITION ANIMATIONS */
+@keyframes pageEnterSmooth {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.998);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-page-enter {
+  animation: pageEnterSmooth 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes topProgressGlow {
+  0% {
+    width: 0%;
+    opacity: 1;
+  }
+  40% {
+    width: 65%;
+    opacity: 1;
+  }
+  80% {
+    width: 92%;
+    opacity: 1;
+  }
+  100% {
+    width: 100%;
+    opacity: 0;
+  }
+}
+
+.page-progress-bar {
+  animation: topProgressGlow 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

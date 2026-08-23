@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   Sparkles,
   X,
@@ -106,6 +107,7 @@ interface Message {
 }
 
 export default function AiAssistantChat() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -283,6 +285,11 @@ export default function AiAssistantChat() {
       setIsTyping(false);
     }
   };
+
+  // Do not render AI chat on admin or doctor dashboard
+  if (pathname.startsWith('/admin') || pathname.startsWith('/doctor')) {
+    return null;
+  }
 
   return (
     <>

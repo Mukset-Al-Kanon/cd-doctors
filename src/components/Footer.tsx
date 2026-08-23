@@ -1,8 +1,17 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Stethoscope, Heart, MapPin, Phone, Mail } from 'lucide-react';
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  // Do not render public footer on admin or doctor routes
+  if (pathname.startsWith('/admin') || pathname.startsWith('/doctor')) {
+    return null;
+  }
   return (
     <footer className="bg-nuvicaNavy-950 text-slate-400 text-xs border-t border-nuvicaNavy-900 pt-12 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">

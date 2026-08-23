@@ -116,7 +116,10 @@ export default function HomeDoctorCarousel({ doctors }: HomeDoctorCarouselProps)
 
   const isAnimatingRef = useRef(false);
   const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
+  const touchEndY = useRef<number | null>(null);
+  const isHorizontalGesture = useRef<boolean | null>(null);
 
   // Sync starting index when doctors change
   useEffect(() => {
@@ -188,30 +191,58 @@ export default function HomeDoctorCarousel({ doctors }: HomeDoctorCarouselProps)
 
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.targetTouches[0].clientX;
-    setIsPaused(true);
+    touchStartY.current = e.targetTouches[0].clientY;
+    touchEndX.current = e.targetTouches[0].clientX;
+    touchEndY.current = e.targetTouches[0].clientY;
+    isHorizontalGesture.current = null;
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.targetTouches[0].clientX;
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    
+    const currentX = e.targetTouches[0].clientX;
+    const currentY = e.targetTouches[0].clientY;
+    touchEndX.current = currentX;
+    touchEndY.current = currentY;
+
+    const deltaX = Math.abs(currentX - touchStartX.current);
+    const deltaY = Math.abs(currentY - touchStartY.current);
+
+    // Lock gesture orientation once past deadzone
+    if (isHorizontalGesture.current === null && (deltaX > 8 || deltaY > 8)) {
+      if (deltaY >= deltaX) {
+        // Vertical page scrolling: DO NOT intercept or pause carousel!
+        isHorizontalGesture.current = false;
+      } else {
+        // Horizontal carousel swipe: pause and prepare transition
+        isHorizontalGesture.current = true;
+        setIsPaused(true);
+      }
+    }
   };
 
   const onTouchEnd = () => {
-    if (!touchStartX.current || !touchEndX.current) {
-      setIsPaused(false);
-      return;
-    }
-    const distance = touchStartX.current - touchEndX.current;
-    const isLeftSwipe = distance > 40;
-    const isRightSwipe = distance < -40;
+    if (
+      touchStartX.current !== null && 
+      touchEndX.current !== null && 
+      isHorizontalGesture.current === true
+    ) {
+      const diffX = touchStartX.current - touchEndX.current;
+      const isLeftSwipe = diffX > 45;
+      const isRightSwipe = diffX < -45;
 
-    if (isLeftSwipe) {
-      handleNext();
-    } else if (isRightSwipe) {
-      handlePrev();
+      if (isLeftSwipe) {
+        handleNext();
+      } else if (isRightSwipe) {
+        handlePrev();
+      }
     }
 
     touchStartX.current = null;
+    touchStartY.current = null;
     touchEndX.current = null;
+    touchEndY.current = null;
+    isHorizontalGesture.current = null;
     setTimeout(() => setIsPaused(false), 2000);
   };
 
@@ -225,7 +256,8 @@ export default function HomeDoctorCarousel({ doctors }: HomeDoctorCarouselProps)
 
   return (
     <div 
-      className="relative w-full"
+      className="relative w-full touch-pan-y"
+      style={{ touchAction: 'pan-y' }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -233,7 +265,8 @@ export default function HomeDoctorCarousel({ doctors }: HomeDoctorCarouselProps)
       {/* 📱 MOBILE VIEW: INFINITE CIRCULAR LOOP CAROUSEL */}
       {/* ========================================================================= */}
       <div 
-        className="md:hidden overflow-hidden w-screen relative left-1/2 -translate-x-1/2 py-3 select-none"
+        className="md:hidden overflow-hidden w-screen relative left-1/2 -translate-x-1/2 py-3 select-none touch-pan-y"
+        style={{ touchAction: 'pan-y' }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}

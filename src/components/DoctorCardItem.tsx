@@ -340,35 +340,37 @@ export default function DoctorCardItem({ doc }: DoctorCardProps) {
   return (
     <div className="card-nuvica flex flex-col justify-between space-y-4 hover:shadow-md transition-all duration-300">
       <div className="space-y-3">
-        {/* Top Profile Header */}
-        <div className="flex items-center gap-3.5 sm:gap-4">
+        {/* Top Profile Header (Clicking anywhere in this header opens the enlarged popup) */}
+        <div 
+          onClick={() => setShowImageModal(true)}
+          className="flex items-center gap-3.5 sm:gap-4 cursor-pointer group/header p-1 -m-1 rounded-2xl hover:bg-sky-50/50 transition-all duration-200"
+          title="ডাক্তারের বিবরণ ও ছবি বড় করে দেখতে ক্লিক করুন"
+        >
           <div
-            onClick={() => setShowImageModal(true)}
-            className="relative shrink-0 group/photo cursor-pointer rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:scale-105 hover:shadow-xl hover:ring-2 hover:ring-sky-400"
-            title="ছবি বড় করে দেখতে ক্লিক করুন"
+            className="relative shrink-0 rounded-2xl overflow-hidden shadow-md transition-all duration-300 group-hover/header:scale-105 group-hover/header:shadow-xl group-hover/header:ring-2 group-hover/header:ring-sky-400"
           >
             <img
               src={doc.photoUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80'}
               alt={doc.name}
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover object-top border-2 border-white bg-slate-100 transition-transform duration-500 group-hover/photo:scale-110"
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover object-top border-2 border-white bg-slate-100 transition-transform duration-500 group-hover/header:scale-110"
             />
             {/* Soft Hover Zoom Indicator */}
-            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[1px]">
-              <div className="w-8 h-8 rounded-full bg-white/90 text-sky-700 flex items-center justify-center shadow-md transform scale-75 group-hover/photo:scale-100 transition-transform duration-300">
+            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/header:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[1px]">
+              <div className="w-8 h-8 rounded-full bg-white/90 text-sky-700 flex items-center justify-center shadow-md transform scale-75 group-hover/header:scale-100 transition-transform duration-300">
                 <ZoomIn className="w-4 h-4" />
               </div>
             </div>
           </div>
 
           <div className="min-w-0 flex-1 flex flex-col justify-center space-y-1.5">
-            <h3 className="font-black text-base sm:text-lg text-nuvicaNavy-950 leading-snug tracking-tight">
+            <h3 className="font-black text-base sm:text-lg text-nuvicaNavy-950 group-hover/header:text-sky-700 transition-colors leading-snug tracking-tight">
               {doctorNameBn}
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed font-medium line-clamp-2">
               {doc.degrees}
             </p>
             <div className="pt-0.5">
-              <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-extrabold text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-lg border border-sky-100/90 shadow-2xs">
+              <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-extrabold text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-lg border border-sky-100/90 shadow-2xs group-hover/header:bg-sky-100 transition-colors">
                 <Stethoscope className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                 <span className="truncate">{specializationBn}</span>
               </span>
@@ -506,6 +508,7 @@ export default function DoctorCardItem({ doc }: DoctorCardProps) {
         doctorName={doctorNameBn}
         specialization={specializationBn}
         hospitalName={doc.hospital?.name}
+        phone={doc.phone || doc.hospital?.phone || ''}
       />
     </div>
   );

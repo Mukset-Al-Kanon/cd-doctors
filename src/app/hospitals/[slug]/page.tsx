@@ -9,7 +9,9 @@ import {
   Star, 
   ArrowRight,
   UserCheck,
-  Calendar
+  Calendar,
+  Building2,
+  CheckCircle2
 } from 'lucide-react';
 import HospitalInfoTabs from './HospitalInfoTabs';
 import DoctorCardItem from '@/components/DoctorCardItem';
@@ -70,45 +72,107 @@ export default async function HospitalProfilePage({ params }: PageProps) {
   const defaultDocPhoto = 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80';
 
   return (
-    <div className="space-y-10 pb-16">
-      {/* Cover Header Banner */}
-      <div className="relative h-64 sm:h-80 bg-nuvicaNavy-900 overflow-hidden">
-        <img
-          src={hospital.coverUrl || 'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&auto=format&fit=crop&q=80'}
-          alt={hospital.name}
-          className="w-full h-full object-cover opacity-50"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-nuvicaNavy-950 via-nuvicaNavy-950/50 to-transparent"></div>
+    <div className="space-y-10 pb-16 pt-4 sm:pt-6">
+      {/* 🌟 EXACT REFERENCE HOSPITAL PROFILE CARD UI */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+        <div className="bg-white rounded-[32px] sm:rounded-[40px] p-3.5 sm:p-6 border border-slate-200/80 shadow-[0_16px_40px_rgba(0,0,0,0.06)]">
+          
+          {/* Top Banner Cover Photo */}
+          <div className="relative h-44 sm:h-56 w-full rounded-[24px] sm:rounded-[28px] overflow-hidden bg-gradient-to-r from-pink-200 via-rose-100 to-amber-100 shadow-inner">
+            <img
+              src={hospital.coverUrl || 'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&auto=format&fit=crop&q=80'}
+              alt={hospital.name}
+              className="w-full h-full object-cover opacity-90"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
+          </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 absolute bottom-6 inset-x-0 flex flex-col sm:flex-row sm:items-end justify-between gap-4 text-white">
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white p-1.5 shadow-2xl border border-white/20 shrink-0">
+          {/* Avatar & Action Buttons Row (55% of Avatar overlaps the banner) */}
+          <div className="flex items-end justify-between px-3 sm:px-4 -mt-[64px] sm:-mt-[82px] relative z-10 mb-3">
+            {/* Circular Profile Avatar (Left Aligned - 55% Over Banner) */}
+            <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white shadow-xl ring-2 ring-slate-100/80 bg-white shrink-0 overflow-hidden">
               <img
-                src={hospital.logoUrl || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=200&auto=format&fit=crop&q=80'}
+                src={hospital.logoUrl || hospital.coverUrl || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400&auto=format&fit=crop&q=80'}
                 alt={hospital.name}
-                className="w-full h-full object-cover rounded-xl"
+                className="w-full h-full object-cover"
               />
             </div>
-            <div>
-              <span className="badge-mint text-[10px] uppercase tracking-wider">{hospital.hospitalType}</span>
-              <h1 className="text-2xl sm:text-4xl font-black tracking-tight mt-1">{hospital.name}</h1>
-              <p className="text-xs sm:text-sm text-slate-300 flex items-center gap-1.5 mt-1 font-medium">
-                <MapPin className="w-4 h-4 text-sky-400 shrink-0" />
-                {hospital.address}
-              </p>
+
+            {/* Action Buttons (Right Aligned) */}
+            <div className="flex items-center gap-2 pb-1">
+              <a
+                href={mapDirectionsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold border border-slate-200 shadow-2xs active:scale-95 transition-all cursor-pointer"
+                title="গুগল ম্যাপে দিকনির্দেশনা দেখুন"
+              >
+                <Navigation className="w-3.5 h-3.5 text-sky-600" />
+                <span>Get Directions</span>
+              </a>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <a
-              href={mapDirectionsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-nuvica-mint text-xs shadow-lg !py-2.5"
-            >
-              <Navigation className="w-4 h-4" /> Get Directions
-            </a>
+          {/* Profile Details (Name, Handle, About) */}
+          <div className="px-3 sm:px-4 space-y-3 pt-1">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
+                  {hospital.name}
+                </h1>
+                <CheckCircle2 className="w-5 h-5 text-sky-500 fill-sky-500 text-white shrink-0" />
+              </div>
+              <p className="text-xs sm:text-sm font-semibold text-slate-400 mt-0.5">
+                @{hospital.slug || 'chuadanga_hospital'} • <span className="text-sky-600 font-bold">{hospital.hospitalType || 'হাসপাতাল ও ডায়াগনস্টিক'}</span>
+              </p>
+            </div>
+
+            {/* About Section */}
+            <div className="space-y-1 pt-1">
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                About
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
+                {hospital.description}
+              </p>
+              <p className="text-xs text-slate-500 font-semibold flex items-center gap-1.5 pt-1">
+                <MapPin className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                <span>{hospital.address}</span>
+              </p>
+            </div>
+
+            {/* 📊 Bottom 3-Column Stats Row */}
+            <div className="pt-4 border-t border-slate-100 grid grid-cols-3 gap-2 text-left">
+              <div>
+                <span className="block text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                  {(hospital.doctors || []).length}
+                </span>
+                <span className="text-[11px] sm:text-xs font-bold text-slate-400 mt-0.5 block">
+                  ডাক্তার (Doctors)
+                </span>
+              </div>
+
+              <div>
+                <span className="block text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                  {(hospital.facilities || []).length || 6}
+                </span>
+                <span className="text-[11px] sm:text-xs font-bold text-slate-400 mt-0.5 block">
+                  বিভাগ (Depts)
+                </span>
+              </div>
+
+              <div>
+                <span className="block text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                  ২৪/৭
+                </span>
+                <span className="text-[11px] sm:text-xs font-bold text-slate-400 mt-0.5 block">
+                  জরুরি সেবা (24/7)
+                </span>
+              </div>
+            </div>
+
           </div>
+
         </div>
       </div>
 

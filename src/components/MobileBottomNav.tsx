@@ -15,8 +15,11 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
   const [showScanModal, setShowScanModal] = useState(false);
 
-  // If on admin routes, do not render mobile bottom nav
-  if (pathname.startsWith('/admin')) {
+  // Only hide on admin portal and doctor portal routes (e.g. /doctor/dashboard), but KEEP visible on public /doctors pages
+  const isDoctorPortal = pathname === '/doctor' || pathname.startsWith('/doctor/');
+  const isAdminPortal = pathname === '/admin' || pathname.startsWith('/admin/');
+
+  if (isAdminPortal || isDoctorPortal) {
     return null;
   }
 
@@ -27,29 +30,26 @@ export default function MobileBottomNav() {
 
   return (
     <>
-      {/* 📱 ULTRA-PREMIUM MINIMALIST FIXED MOBILE BOTTOM NAVIGATION */}
+      {/* 📱 FLOATING CAPSULE DOCK MOBILE NAVIGATION */}
       <nav 
         aria-label="Mobile Bottom Navigation" 
-        className="md:hidden fixed bottom-0 left-0 right-0 w-full h-16 z-50 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 shadow-[0_-6px_25px_rgba(0,0,0,0.06)] select-none"
+        className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md select-none"
       >
-        <div className="grid grid-cols-5 items-center h-full max-w-md mx-auto px-2 relative">
+        <div className="bg-white/90 backdrop-blur-2xl border border-white/85 rounded-full p-1.5 sm:p-2 shadow-[0_16px_40px_rgba(0,0,0,0.12)] flex items-center justify-between relative">
           
           {/* 1. Home */}
           <Link
             href="/"
             scroll={false}
             onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })}
-            className={`flex flex-col items-center justify-center h-full relative transition-all duration-200 select-none touch-manipulation active:scale-95 ${
+            className={`flex-1 flex flex-col items-center justify-center py-1 transition-all duration-200 active:scale-95 ${
               isHome 
-                ? 'text-sky-600 font-bold' 
-                : 'text-slate-400 hover:text-slate-600 font-medium'
+                ? 'text-sky-600 font-black' 
+                : 'text-slate-400 hover:text-slate-600 font-bold'
             }`}
           >
-            {isHome && (
-              <span className="absolute top-0 w-6 h-1 bg-sky-600 rounded-b-full shadow-xs" />
-            )}
-            <Home className={`w-5 h-5 transition-transform duration-200 ${isHome ? 'scale-110 stroke-[2.4]' : 'stroke-[1.7]'}`} />
-            <span className="text-[10.5px] tracking-tight mt-1">হোম</span>
+            <Home className={`w-5 h-5 transition-transform duration-200 ${isHome ? 'scale-110 stroke-[2.5]' : 'stroke-[1.8]'}`} />
+            <span className="text-[10px] tracking-tight mt-0.5">হোম</span>
           </Link>
 
           {/* 2. Hospitals */}
@@ -57,50 +57,44 @@ export default function MobileBottomNav() {
             href="/hospitals"
             scroll={false}
             onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })}
-            className={`flex flex-col items-center justify-center h-full relative transition-all duration-200 select-none touch-manipulation active:scale-95 ${
+            className={`flex-1 flex flex-col items-center justify-center py-1 transition-all duration-200 active:scale-95 ${
               isHospitals 
-                ? 'text-sky-600 font-bold' 
-                : 'text-slate-400 hover:text-slate-600 font-medium'
+                ? 'text-sky-600 font-black' 
+                : 'text-slate-400 hover:text-slate-600 font-bold'
             }`}
           >
-            {isHospitals && (
-              <span className="absolute top-0 w-6 h-1 bg-sky-600 rounded-b-full shadow-xs" />
-            )}
-            <Building2 className={`w-5 h-5 transition-transform duration-200 ${isHospitals ? 'scale-110 stroke-[2.4]' : 'stroke-[1.7]'}`} />
-            <span className="text-[10.5px] tracking-tight mt-1">হাসপাতাল</span>
+            <Building2 className={`w-5 h-5 transition-transform duration-200 ${isHospitals ? 'scale-110 stroke-[2.5]' : 'stroke-[1.8]'}`} />
+            <span className="text-[10px] tracking-tight mt-0.5">হাসপাতাল</span>
           </Link>
 
-          {/* 3. Center Minimalist Scan Button */}
-          <div className="flex flex-col items-center justify-center relative -top-3">
-            <button
-              type="button"
-              onClick={() => setShowScanModal(true)}
-              aria-label="প্রেসক্রিপশন স্ক্যান করুন"
-              className="w-12 h-12 rounded-2xl bg-gradient-to-b from-sky-500 to-sky-600 text-white flex items-center justify-center shadow-lg shadow-sky-500/25 border-[3px] border-white active:scale-90 transition-all duration-200 cursor-pointer group touch-manipulation"
-            >
-              <Scan className="w-5 h-5 text-white stroke-[2.2] group-hover:scale-110 transition-transform duration-200" />
-            </button>
-            <span className="text-[10px] font-extrabold text-sky-700 tracking-tight mt-0.5">
+          {/* 3. Center Elevated Protruding Floating Button (Scan / AI) */}
+          <button
+            type="button"
+            onClick={() => setShowScanModal(true)}
+            aria-label="প্রেসক্রিপশন স্ক্যান করুন"
+            className="relative -mt-6 flex flex-col items-center group cursor-pointer px-1"
+          >
+            <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 transform group-hover:scale-105 active:scale-90 bg-gradient-to-tr from-sky-400 via-sky-500 to-sky-600 text-white shadow-sky-500/40 ring-4 ring-white">
+              <Scan className="w-5 h-5 stroke-[2.3] group-hover:scale-110 transition-transform duration-200" />
+            </div>
+            <span className="text-[10px] mt-0.5 font-black text-sky-600 tracking-tight">
               স্ক্যান
             </span>
-          </div>
+          </button>
 
           {/* 4. Doctors */}
           <Link
             href="/doctors"
             scroll={false}
             onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })}
-            className={`flex flex-col items-center justify-center h-full relative transition-all duration-200 select-none touch-manipulation active:scale-95 ${
+            className={`flex-1 flex flex-col items-center justify-center py-1 transition-all duration-200 active:scale-95 ${
               isDoctors 
-                ? 'text-sky-600 font-bold' 
-                : 'text-slate-400 hover:text-slate-600 font-medium'
+                ? 'text-sky-600 font-black' 
+                : 'text-slate-400 hover:text-slate-600 font-bold'
             }`}
           >
-            {isDoctors && (
-              <span className="absolute top-0 w-6 h-1 bg-sky-600 rounded-b-full shadow-xs" />
-            )}
-            <Stethoscope className={`w-5 h-5 transition-transform duration-200 ${isDoctors ? 'scale-110 stroke-[2.4]' : 'stroke-[1.7]'}`} />
-            <span className="text-[10.5px] tracking-tight mt-1">ডাক্তার</span>
+            <Stethoscope className={`w-5 h-5 transition-transform duration-200 ${isDoctors ? 'scale-110 stroke-[2.5]' : 'stroke-[1.8]'}`} />
+            <span className="text-[10px] tracking-tight mt-0.5">ডাক্তার</span>
           </Link>
 
           {/* 5. Blood */}
@@ -108,17 +102,14 @@ export default function MobileBottomNav() {
             href="/blood"
             scroll={false}
             onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })}
-            className={`flex flex-col items-center justify-center h-full relative transition-all duration-200 select-none touch-manipulation active:scale-95 ${
+            className={`flex-1 flex flex-col items-center justify-center py-1 transition-all duration-200 active:scale-95 ${
               isBlood 
-                ? 'text-rose-600 font-bold' 
-                : 'text-slate-400 hover:text-slate-600 font-medium'
+                ? 'text-rose-600 font-black' 
+                : 'text-slate-400 hover:text-slate-600 font-bold'
             }`}
           >
-            {isBlood && (
-              <span className="absolute top-0 w-6 h-1 bg-rose-600 rounded-b-full shadow-xs" />
-            )}
-            <Droplet className={`w-5 h-5 transition-transform duration-200 ${isBlood ? 'scale-110 text-rose-600 fill-rose-500 stroke-[2.4]' : 'stroke-[1.7]'}`} />
-            <span className="text-[10.5px] tracking-tight mt-1">রক্তদান</span>
+            <Droplet className={`w-5 h-5 transition-transform duration-200 ${isBlood ? 'scale-110 text-rose-600 fill-rose-500 stroke-[2.5]' : 'stroke-[1.8]'}`} />
+            <span className="text-[10px] tracking-tight mt-0.5">রক্তদান</span>
           </Link>
 
         </div>

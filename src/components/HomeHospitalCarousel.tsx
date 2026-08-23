@@ -2,12 +2,8 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { 
-  MapPin, 
-  Phone, 
-  ArrowUpRight, 
-  Building2 
-} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { MapPin, Building2 } from 'lucide-react';
 
 interface HospitalItem {
   id: string;
@@ -27,6 +23,8 @@ interface HomeHospitalCarouselProps {
 }
 
 export default function HomeHospitalCarousel({ hospitals }: HomeHospitalCarouselProps) {
+  const router = useRouter();
+
   // Take first 6 hospitals
   const displayHospitals = hospitals.slice(0, 6);
   const N = displayHospitals.length;
@@ -42,8 +40,12 @@ export default function HomeHospitalCarousel({ hospitals }: HomeHospitalCarousel
   const [isPaused, setIsPaused] = useState(false);
 
   const isAnimatingRef = useRef(false);
+  const isDraggingRef = useRef(false);
   const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
+  const touchEndY = useRef<number | null>(null);
+  const isHorizontalGesture = useRef<boolean | null>(null);
 
   // Active dot index (0 to N - 1)
   const activeDotIndex = N > 0 ? ((currentIndex % N) + N) % N : 0;
@@ -116,34 +118,77 @@ export default function HomeHospitalCarousel({ hospitals }: HomeHospitalCarousel
     return () => clearInterval(interval);
   }, [isPaused, N, handleNext]);
 
-  // Touch Swipe Handlers for Mobile
+  // Enhanced Touch Swipe Handlers with Vertical Scroll Protection
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.targetTouches[0].clientX;
-    setIsPaused(true);
+    touchStartY.current = e.targetTouches[0].clientY;
+    touchEndX.current = e.targetTouches[0].clientX;
+    touchEndY.current = e.targetTouches[0].clientY;
+    isHorizontalGesture.current = null;
+    isDraggingRef.current = false;
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.targetTouches[0].clientX;
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    
+    const currentX = e.targetTouches[0].clientX;
+    const currentY = e.targetTouches[0].clientY;
+    touchEndX.current = currentX;
+    touchEndY.current = currentY;
+
+    const deltaX = Math.abs(currentX - touchStartX.current);
+    const deltaY = Math.abs(currentY - touchStartY.current);
+
+    if (deltaX > 10) {
+      isDraggingRef.current = true;
+    }
+
+    if (isHorizontalGesture.current === null && (deltaX > 8 || deltaY > 8)) {
+      if (deltaY >= deltaX) {
+        // Vertical page scroll: don't intercept
+        isHorizontalGesture.current = false;
+      } else {
+        // Horizontal swipe: pause and prepare slide
+        isHorizontalGesture.current = true;
+        setIsPaused(true);
+      }
+    }
   };
 
   const onTouchEnd = () => {
-    if (!touchStartX.current || !touchEndX.current) {
-      setIsPaused(false);
-      return;
-    }
-    const distance = touchStartX.current - touchEndX.current;
-    const isLeftSwipe = distance > 40;
-    const isRightSwipe = distance < -40;
+    if (
+      touchStartX.current !== null && 
+      touchEndX.current !== null && 
+      isHorizontalGesture.current === true
+    ) {
+      const diffX = touchStartX.current - touchEndX.current;
+      const isLeftSwipe = diffX > 45;
+      const isRightSwipe = diffX < -45;
 
-    if (isLeftSwipe) {
-      handleNext();
-    } else if (isRightSwipe) {
-      handlePrev();
+      if (isLeftSwipe) {
+        handleNext();
+      } else if (isRightSwipe) {
+        handlePrev();
+      }
     }
 
     touchStartX.current = null;
+    touchStartY.current = null;
     touchEndX.current = null;
-    setTimeout(() => setIsPaused(false), 2000);
+    touchEndY.current = null;
+    isHorizontalGesture.current = null;
+    setTimeout(() => {
+      isDraggingRef.current = false;
+      setIsPaused(false);
+    }, 200);
+  };
+
+  const handleCardClick = (e: React.MouseEvent, slug: string) => {
+    if (isDraggingRef.current) {
+      e.preventDefault();
+      return;
+    }
+    router.push(`/hospitals/${slug}`);
   };
 
   const goToDot = (dotIdx: number) => {
@@ -155,14 +200,18 @@ export default function HomeHospitalCarousel({ hospitals }: HomeHospitalCarousel
   if (N === 0) return null;
 
   return (
-    <div className="relative w-full">
+    <div 
+      className="relative w-full touch-pan-y"
+      style={{ touchAction: 'pan-y' }}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
       {/* ========================================================================= */}
-      {/* 📱 MOBILE VIEW: INFINITE CIRCULAR LOOP CAROUSEL WITH FADED PEEKING SIDES */}
+      {/* 📱 MOBILE VIEW: INFINITE CIRCULAR LOOP CAROUSEL (MATCHING DOCTOR STYLE) */}
       {/* ========================================================================= */}
       <div 
-        className="md:hidden overflow-hidden w-screen relative left-1/2 -translate-x-1/2 py-3 select-none"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
+        className="md:hidden overflow-hidden w-screen relative left-1/2 -translate-x-1/2 py-3 touch-pan-y"
+        style={{ touchAction: 'pan-y' }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -184,104 +233,57 @@ export default function HomeHospitalCarousel({ hospitals }: HomeHospitalCarousel
             return (
               <div
                 key={`${hospital.id}-clone-${idx}`}
-                onClick={() => {
-                  if (!isActive && !isAnimatingRef.current) {
-                    setIsTransitioning(true);
-                    setCurrentIndex(idx);
-                  }
-                }}
-                className={`shrink-0 w-[75vw] max-w-[325px] mx-[1.2vw] cursor-pointer ${
+                className={`shrink-0 w-[75vw] max-w-[325px] mx-[1.2vw] cursor-pointer bg-transparent ${
                   isTransitioning 
                     ? 'transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]' 
                     : 'transition-none'
                 } ${
                   isActive 
-                    ? 'scale-100 opacity-100 z-20 shadow-[0_16px_36px_-10px_rgba(14,165,233,0.22)]' 
+                    ? 'scale-100 opacity-100 z-20' 
                     : 'scale-[0.93] opacity-45 z-10 pointer-events-auto blur-[0.2px]'
                 }`}
               >
-                <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm flex flex-col justify-between overflow-hidden h-full">
-                  <div className="space-y-3 p-3.5 pb-1">
-                    {/* Hospital Cover Image Box - 16:9 Aspect Ratio with Location Overlay */}
-                    <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-200/80 shadow-inner">
-                      <img
-                        src={hospital.coverUrl || hospital.logoUrl || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80'}
-                        alt={hospital.name}
-                        className="w-full h-full object-cover opacity-95"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
-
-                      <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center gap-1.5 text-white text-[11px] font-semibold drop-shadow-md">
-                        <MapPin className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                        <span className="truncate">{hospital.address}</span>
-                      </div>
-                    </div>
-
-                    {/* Info Content */}
-                    <div className="space-y-1">
-                      <h3 className="font-extrabold text-base text-nuvicaNavy-900 leading-snug line-clamp-2">
-                        {isActive ? (
-                          <Link href={`/hospitals/${hospital.slug}`}>
-                            {hospital.name}
-                          </Link>
-                        ) : (
-                          <span>{hospital.name}</span>
-                        )}
-                      </h3>
-                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed font-medium">
-                        {hospital.description}
-                      </p>
-                    </div>
+                {/* 🎴 Clickable Hospital Card (Entire Card is Link to Hospital Profile) */}
+                <Link
+                  href={`/hospitals/${hospital.slug}`}
+                  onClick={(e) => handleCardClick(e, hospital.slug)}
+                  className={`block bg-slate-950 rounded-3xl overflow-hidden group active:scale-[0.98] transition-all duration-200 cursor-pointer ${
+                    isActive ? 'shadow-[0_20px_40px_-10px_rgba(15,23,42,0.65)]' : 'shadow-md shadow-slate-950/30'
+                  }`}
+                >
+                  {/* Hospital Cover Image Box with Dark Gradient Overlay (4:3 Aspect Ratio) */}
+                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-900">
+                    <img
+                      src={hospital.coverUrl || hospital.logoUrl || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80'}
+                      alt={hospital.name}
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
                   </div>
 
-                  {/* Card Action Footer - 2-Button Row */}
-                  <div className="p-3 bg-slate-50/90 border-t border-slate-100 mt-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      {hospital.phone ? (
-                        <a
-                          href={`tel:${hospital.phone}`}
-                          onClick={(e) => {
-                            if (!isActive) {
-                              e.preventDefault();
-                              if (!isAnimatingRef.current) {
-                                setIsTransitioning(true);
-                                setCurrentIndex(idx);
-                              }
-                            }
-                          }}
-                          className="py-2 px-2.5 rounded-2xl bg-white hover:bg-sky-50 text-sky-700 hover:text-sky-900 border border-sky-200/90 text-xs font-black shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                          title={`হটলাইন: ${hospital.phone}`}
-                        >
-                          <Phone className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                          <span>হটলাইন</span>
-                        </a>
-                      ) : null}
-
-                      <Link 
-                        href={`/hospitals/${hospital.slug}`}
-                        onClick={(e) => {
-                          if (!isActive) {
-                            e.preventDefault();
-                            if (!isAnimatingRef.current) {
-                              setIsTransitioning(true);
-                              setCurrentIndex(idx);
-                            }
-                          }
-                        }}
-                        className={`inline-flex items-center justify-center gap-1 px-3 py-2 rounded-2xl bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 text-white text-xs font-black shadow-sm active:scale-95 transition-all ${hospital.phone ? '' : 'col-span-2'}`}
-                      >
-                        <span>বিস্তারিত</span> 
-                        <ArrowUpRight className="w-3.5 h-3.5 text-white shrink-0" />
-                      </Link>
+                  {/* Dark Theme Details Box (Name & Location Only, No Buttons) */}
+                  <div className="p-4 pt-2.5 pb-4 space-y-1.5 bg-slate-950 text-white">
+                    <div className="flex items-center gap-1.5 text-sky-400 text-xs font-black">
+                      <Building2 className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                      <span className="truncate">{hospital.hospitalType || 'হাসপাতাল ও ডায়াগনস্টিক'}</span>
                     </div>
+
+                    <h3 className="font-black text-base sm:text-lg text-white leading-snug group-hover:text-sky-300 transition-colors line-clamp-1">
+                      {hospital.name}
+                    </h3>
+
+                    <p className="text-xs text-slate-400 font-medium flex items-center gap-1.5 truncate">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>{hospital.address}</span>
+                    </p>
                   </div>
-                </div>
+                </Link>
               </div>
             );
           })}
         </div>
 
-        {/* 🔘 Brand Sky-Blue Pagination Dots Indicator (Synced with Card Animation) */}
+        {/* 🔘 Brand Sky-Blue Pagination Dots Indicator */}
         <div className="flex items-center justify-center gap-1.5 pt-4">
           {displayHospitals.map((_, idx) => (
             <button
@@ -300,69 +302,42 @@ export default function HomeHospitalCarousel({ hospitals }: HomeHospitalCarousel
       </div>
 
       {/* ========================================================================= */}
-      {/* 💻 DESKTOP 3-COLUMN MODERN GRID (md and up) */}
+      {/* 💻 DESKTOP 3-COLUMN MODERN GRID (MATCHING LUXURY CARD THEME) */}
       {/* ========================================================================= */}
       <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-8 lg:mb-[40px]">
         {displayHospitals.slice(0, 3).map((hospital) => (
-          <div 
+          <Link
             key={hospital.id} 
-            className="bg-white rounded-3xl border border-slate-200/90 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_24px_rgba(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-250 ease-in-out cursor-pointer flex flex-col justify-between overflow-hidden group"
+            href={`/hospitals/${hospital.slug}`}
+            className="block bg-slate-950 rounded-3xl overflow-hidden shadow-lg shadow-slate-950/20 hover:shadow-2xl hover:shadow-sky-500/10 hover:-translate-y-1.5 transition-all duration-300 group cursor-pointer border border-white/5"
           >
-            <div className="space-y-4 p-6 pb-2">
-              {/* Hospital Cover Image Box - 16:9 Aspect Ratio */}
-              <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-inner group-hover:border-sky-300 transition-colors">
-                <img
-                  src={hospital.coverUrl || hospital.logoUrl || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80'}
-                  alt={hospital.name}
-                  className="w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-300 ease-in-out"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
-
-                <div className="absolute bottom-3 left-3 right-3 flex items-center gap-1.5 text-white text-xs font-semibold drop-shadow-md">
-                  <MapPin className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                  <span className="truncate">{hospital.address}</span>
-                </div>
-              </div>
-
-              {/* Info Content */}
-              <div className="space-y-2">
-                <h3 className="font-semibold text-[19px] text-nuvicaNavy-900 leading-snug group-hover:text-sky-600 transition-colors line-clamp-2">
-                  <Link href={`/hospitals/${hospital.slug}`}>
-                    {hospital.name}
-                  </Link>
-                </h3>
-                <p className="text-[14px] text-slate-500 line-clamp-2 leading-relaxed font-normal">
-                  {hospital.description}
-                </p>
-              </div>
+            {/* Hospital Cover Image Box - 4:3 Aspect Ratio */}
+            <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-900">
+              <img
+                src={hospital.coverUrl || hospital.logoUrl || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80'}
+                alt={hospital.name}
+                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
             </div>
 
-            {/* Card Action Footer - Clean 2-Button Grid */}
-            <div className="p-4 bg-slate-50/80 border-t border-slate-100">
-              <div className="grid grid-cols-2 gap-2.5">
-                {hospital.phone ? (
-                  <a
-                    href={`tel:${hospital.phone}`}
-                    className="relative w-full py-2.5 px-3 rounded-2xl bg-white hover:bg-sky-50 text-sky-700 hover:text-sky-900 border border-sky-200/90 hover:border-sky-400 text-xs font-extrabold shadow-2xs hover:shadow-md hover:shadow-sky-500/15 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300 ease-out flex items-center justify-center gap-1.5 overflow-hidden group/btn"
-                    title={`হটলাইন: ${hospital.phone}`}
-                  >
-                    <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full bg-gradient-to-r from-transparent via-sky-200/40 to-transparent transition-transform duration-700 ease-in-out pointer-events-none" />
-                    <Phone className="relative z-10 w-3.5 h-3.5 text-sky-600 group-hover/btn:text-sky-700 group-hover/btn:rotate-12 group-hover/btn:scale-115 transition-transform duration-300 shrink-0" />
-                    <span className="relative z-10">হটলাইন</span>
-                  </a>
-                ) : null}
-
-                <Link 
-                  href={`/hospitals/${hospital.slug}`} 
-                  className={`relative w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 hover:from-sky-700 hover:via-sky-600 hover:to-sky-700 text-white text-xs font-extrabold shadow-sm hover:shadow-lg hover:shadow-sky-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300 ease-out overflow-hidden group/detail ${hospital.phone ? '' : 'col-span-2'}`}
-                >
-                  <span className="absolute inset-0 -translate-x-full group-hover/detail:translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 ease-in-out pointer-events-none" />
-                  <span className="relative z-10">বিস্তারিত</span> 
-                  <ArrowUpRight className="relative z-10 w-3.5 h-3.5 text-white group-hover/detail:translate-x-0.5 group-hover/detail:-translate-y-0.5 group-hover/detail:scale-110 transition-transform duration-300 shrink-0" />
-                </Link>
+            {/* Info Content */}
+            <div className="p-5 space-y-1.5 bg-slate-950 text-white">
+              <div className="flex items-center gap-1.5 text-sky-400 text-xs font-black">
+                <Building2 className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                <span className="truncate">{hospital.hospitalType || 'হাসপাতাল ও ডায়াগনস্টিক'}</span>
               </div>
+
+              <h3 className="font-black text-lg text-white leading-snug group-hover:text-sky-300 transition-colors line-clamp-1">
+                {hospital.name}
+              </h3>
+
+              <p className="text-xs text-slate-400 font-medium flex items-center gap-1.5 truncate">
+                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>{hospital.address}</span>
+              </p>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

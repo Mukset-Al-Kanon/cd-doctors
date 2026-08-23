@@ -60,11 +60,6 @@ export default function Navbar() {
     }, 340);
   };
 
-  // If on admin routes, do not render public Navbar
-  if (pathname.startsWith('/admin')) {
-    return null;
-  }
-
   // Fetch current logged-in admin user session
   useEffect(() => {
     fetch('/api/auth/me')
@@ -98,8 +93,14 @@ export default function Navbar() {
     { name: 'Doctors', href: '/doctors', icon: Stethoscope, iconColor: 'text-sky-600' },
     { name: 'Blood', href: '/blood', icon: Droplet, iconColor: 'text-rose-500 fill-rose-500' },
     { name: 'Emergency', href: '/emergency', icon: Siren, iconColor: 'text-amber-500' },
+    { name: 'Doctor Portal', href: '/doctor/dashboard', icon: Sparkles, iconColor: 'text-indigo-600' },
     { name: 'About', href: '/about', icon: Info, iconColor: 'text-sky-600' },
   ];
+
+  // If on admin or doctor routes, do not render public Navbar
+  if (pathname.startsWith('/admin') || pathname.startsWith('/doctor')) {
+    return null;
+  }
 
   return (
     <>
