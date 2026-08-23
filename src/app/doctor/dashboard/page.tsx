@@ -614,7 +614,7 @@ export default function DoctorDashboardPage() {
     }
   };
 
-  const handleSubscribePackage = async (packageKey: 'STARTER' | 'GROWTH' | 'PRO') => {
+  const handleSubscribePackage = async (packageKey: 'STARTER' | 'GROWTH' | 'PRO' | 'VIP_PRO') => {
     setPurchaseLoading(packageKey);
 
     try {

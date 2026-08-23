@@ -130,11 +130,11 @@ export async function GET(
         bmdc_number: doc.bmdcNumber,
         bio: doc.bio,
         treated_diseases: doc.treatedDiseases,
-        department: {
+        department: doc.department ? {
           id: doc.department.id,
           name_en: doc.department.nameEn,
           name_bn: doc.department.nameBn,
-        },
+        } : null,
         hospital: {
           id: hospital.id,
           name: hospital.name,

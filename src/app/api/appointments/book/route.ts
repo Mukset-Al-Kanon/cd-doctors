@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Selected doctor is currently not accepting appointments.' }, { status: 400 });
     }
 
-    if (doctor.hospital.status !== 'APPROVED') {
+    if (doctor.hospital && doctor.hospital.status !== 'APPROVED') {
       return NextResponse.json({ error: 'Selected hospital is not active.' }, { status: 400 });
     }
 
