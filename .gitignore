@@ -46,3 +46,4 @@ strix_runs/
 *.sarif
 *.db
 .env.test
+/src/generated/
