@@ -348,21 +348,18 @@ h1, h2, h3, h4, h5, h6 {
   will-change: transform, opacity;
 }
 
-/* ✨ SILKY SMOOTH LUXURY PAGE TRANSITION ANIMATIONS */
+/* ✨ SILKY SMOOTH LUXURY PAGE TRANSITION ANIMATIONS (Pure opacity to keep position: fixed intact) */
 @keyframes pageEnterSmooth {
   0% {
     opacity: 0;
-    transform: translateY(6px) scale(0.998);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 
 .animate-page-enter {
-  animation: pageEnterSmooth 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: opacity, transform;
+  animation: pageEnterSmooth 0.22s ease-out forwards;
 }
 
 @keyframes topProgressGlow {

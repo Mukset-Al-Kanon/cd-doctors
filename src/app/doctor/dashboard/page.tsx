@@ -1887,8 +1887,8 @@ export default function DoctorDashboardPage() {
       </div>
 
       {/* 5. Klarna-Style Floating Bottom Dock */}
-      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-md">
-        <div className="bg-white/85 backdrop-blur-2xl border border-white/90 rounded-full p-2 shadow-[0_16px_40px_rgba(0,0,0,0.12)] flex items-center justify-between relative">
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md pointer-events-auto select-none">
+        <div className="bg-white/90 backdrop-blur-2xl border border-white/90 rounded-full p-2 shadow-[0_16px_40px_rgba(0,0,0,0.14)] flex items-center justify-between relative">
           {[
             { id: 'home', label: 'Home', icon: Home },
             { id: 'packages', label: 'Plans', icon: Sparkles },
