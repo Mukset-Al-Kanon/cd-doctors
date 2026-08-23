@@ -8,8 +8,16 @@ import { Stethoscope, Heart, MapPin, Phone, Mail } from 'lucide-react';
 export default function Footer() {
   const pathname = usePathname();
 
-  // Do not render public footer on admin or doctor routes
-  if (pathname.startsWith('/admin') || pathname.startsWith('/doctor')) {
+  // Do not render public footer on admin, doctor, login, or register routes
+  const isDoctorPortal = pathname === '/doctor' || pathname.startsWith('/doctor/');
+  const isAdminPortal = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isAuthPage = 
+    pathname === '/login' || 
+    pathname.startsWith('/login/') || 
+    pathname === '/register' || 
+    pathname.startsWith('/register/');
+
+  if (isAdminPortal || isDoctorPortal || isAuthPage) {
     return null;
   }
   return (

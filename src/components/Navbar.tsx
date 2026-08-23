@@ -38,6 +38,19 @@ export default function Navbar() {
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [user, setUser] = useState<{ name: string; email: string; phone?: string | null; role: string } | null>(null);
 
+  // Hide Navbar completely on login, register, doctor portal, and admin portal
+  const isDoctorPortal = pathname === '/doctor' || pathname.startsWith('/doctor/');
+  const isAdminPortal = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isAuthPage = 
+    pathname === '/login' || 
+    pathname.startsWith('/login/') || 
+    pathname === '/register' || 
+    pathname.startsWith('/register/');
+
+  if (isAuthPage || isDoctorPortal || isAdminPortal) {
+    return null;
+  }
+
   const closeMobileMenu = () => {
     if (isClosing) return;
     setIsClosing(true);

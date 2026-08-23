@@ -118,6 +118,19 @@ export default function AiAssistantChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Hide AI chat assistant on auth pages (login/register) and admin/doctor portals
+  const isDoctorPortal = pathname === '/doctor' || pathname.startsWith('/doctor/');
+  const isAdminPortal = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isAuthPage = 
+    pathname === '/login' || 
+    pathname.startsWith('/login/') || 
+    pathname === '/register' || 
+    pathname.startsWith('/register/');
+
+  if (isAdminPortal || isDoctorPortal || isAuthPage) {
+    return null;
+  }
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 

@@ -15,11 +15,16 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
   const [showScanModal, setShowScanModal] = useState(false);
 
-  // Only hide on admin portal and doctor portal routes (e.g. /doctor/dashboard), but KEEP visible on public /doctors pages
+  // Hide on admin portal, doctor portal, and login/register pages (keep visible on public /doctors)
   const isDoctorPortal = pathname === '/doctor' || pathname.startsWith('/doctor/');
   const isAdminPortal = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isAuthPage = 
+    pathname === '/login' || 
+    pathname.startsWith('/login/') || 
+    pathname === '/register' || 
+    pathname.startsWith('/register/');
 
-  if (isAdminPortal || isDoctorPortal) {
+  if (isAdminPortal || isDoctorPortal || isAuthPage) {
     return null;
   }
 
