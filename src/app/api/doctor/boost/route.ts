@@ -4,13 +4,13 @@ import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
-export const BOOST_PLANS_CONFIG: Record<
+const BOOST_PLANS_CONFIG: Record<
   string,
   { name: string; labelBn: string; price: number; targetType: 'LOCAL' | 'NATIONWIDE'; durationDays: number; description: string }
 > = {
   LOCAL_CHAMBER: {
     name: 'Local Chamber Boost',
-    labelBn: '🏢 লোকাল চেম্বার বুস্ট',
+    labelBn: 'লোকাল চেম্বার বুস্ট',
     price: 199,
     targetType: 'LOCAL',
     durationDays: 1,
@@ -18,7 +18,7 @@ export const BOOST_PLANS_CONFIG: Record<
   },
   NATIONWIDE_TELEMEDICINE: {
     name: 'Nationwide Telemedicine Boost',
-    labelBn: '🌐 দেশব্যাপী টেলিমেডিসিন বুস্ট',
+    labelBn: 'দেশব্যাপী টেলিমেডিসিন বুস্ট',
     price: 399,
     targetType: 'NATIONWIDE',
     durationDays: 1,

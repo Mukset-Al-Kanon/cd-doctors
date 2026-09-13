@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PosThermalTokenModal from '@/components/PosThermalTokenModal';
@@ -67,7 +67,7 @@ function playCallingChime() {
   }
 }
 
-export default function AssistantDeskPage() {
+function AssistantDeskContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const docIdParam = searchParams.get('doctorId');
@@ -766,5 +766,17 @@ export default function AssistantDeskPage() {
       )}
 
     </div>
+  );
+}
+
+export default function AssistantDeskPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8">
+        <div className="w-8 h-8 border-4 border-sky-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <AssistantDeskContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { 
   Building2, 
@@ -211,7 +211,7 @@ function playVoiceAnnouncement(
   }, 650);
 }
 
-export default function DoctorTvDisplayPage() {
+function DoctorTvDisplayContent() {
   const searchParams = useSearchParams();
   const doctorId = searchParams.get('doctorId') || '';
 
@@ -695,5 +695,17 @@ export default function DoctorTvDisplayPage() {
       `}</style>
 
     </div>
+  );
+}
+
+export default function DoctorTvDisplayPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-8">
+        <div className="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <DoctorTvDisplayContent />
+    </Suspense>
   );
 }

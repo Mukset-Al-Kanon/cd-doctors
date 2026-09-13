@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -63,7 +63,7 @@ interface PrescribedMedicine {
   instruction: string;
 }
 
-export default function DoctorPrescriptionPage() {
+function DoctorPrescriptionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const docIdParam = searchParams.get('doctorId');
@@ -1456,5 +1456,17 @@ export default function DoctorPrescriptionPage() {
       )}
 
     </div>
+  );
+}
+
+export default function DoctorPrescriptionPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8">
+        <div className="w-8 h-8 border-4 border-sky-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <DoctorPrescriptionContent />
+    </Suspense>
   );
 }

@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
-export const DURATION_PACKAGES_CONFIG: Record<
+const DURATION_PACKAGES_CONFIG: Record<
   string,
   { name: string; labelBn: string; price: number; durationDays: number; savePercent: number }
 > = {
