@@ -16,6 +16,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import DoctorCardItem from '@/components/DoctorCardItem';
+import CustomLocationSelector, { BD_DIVISIONS_MAP, getDivisionByDistrict } from '@/components/CustomLocationSelector';
 
 const DAYS_MAP = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -63,18 +64,183 @@ interface DoctorsClientViewProps {
   initialDoctors: any[];
   initialQuery?: string;
   initialSpecialty?: string;
+  initialUserDistrict?: string | null;
+}
+
+interface CustomDropdownOption {
+  value: string;
+  label: string;
+}
+
+interface CustomSmoothDropdownProps {
+  label: string;
+  value: string;
+  options: CustomDropdownOption[];
+  onChange: (val: string) => void;
+  alignRight?: boolean;
+}
+
+function CustomSmoothDropdown({ 
+  label, 
+  value, 
+  options, 
+  onChange, 
+  alignRight = false 
+}: CustomSmoothDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const selectedOption = options.find((o) => o.value === value) || options[0];
+  const displayLabel = selectedOption?.label || value;
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <label className="text-[11px] sm:text-xs font-bold text-slate-500 mb-1 block">
+        {label}
+      </label>
+      
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full bg-white border rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-slate-800 flex items-center justify-between cursor-pointer transition-all shadow-2xs text-left ${
+          isOpen 
+            ? 'border-blue-500 ring-2 ring-blue-500/20' 
+            : 'border-slate-200/90 hover:border-slate-300'
+        }`}
+        title={displayLabel}
+      >
+        <span className="truncate pr-2">{displayLabel}</span>
+        <ChevronDown 
+          className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+            isOpen ? 'rotate-180 text-blue-600' : ''
+          }`} 
+        />
+      </button>
+
+      {isOpen && (
+        <div 
+          className={`absolute top-[calc(100%+6px)] ${
+            alignRight ? 'right-0' : 'left-0'
+          } min-w-[260px] sm:min-w-[320px] max-w-[calc(100vw-36px)] bg-white rounded-2xl shadow-2xl border border-slate-200/90 py-2 z-50 max-h-72 overflow-y-auto overscroll-contain animate-fadeIn`}
+        >
+          {options.map((opt, idx) => {
+            const isSelected = opt.value === value;
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-3.5 py-2.5 text-xs sm:text-sm transition-colors flex items-start justify-between gap-2.5 cursor-pointer ${
+                  isSelected
+                    ? 'bg-sky-50 text-sky-700 font-bold'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium'
+                }`}
+              >
+                <span className="leading-snug break-words flex-1">{opt.label}</span>
+                {isSelected && <Check className="w-3.5 h-3.5 text-sky-600 shrink-0 mt-0.5" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function DoctorsClientView({
   initialDoctors,
   initialQuery = '',
   initialSpecialty = 'all',
+  initialUserDistrict = null,
 }: DoctorsClientViewProps) {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [selectedSpecialty, setSelectedSpecialty] = useState(initialSpecialty);
-  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+  const [selectedHospital, setSelectedHospital] = useState('সব হাসপাতাল');
+  const [selectedDivision, setSelectedDivision] = useState(
+    initialUserDistrict ? getDivisionByDistrict(initialUserDistrict) : 'সব বিভাগ'
+  );
+  const [selectedDistrict, setSelectedDistrict] = useState(
+    initialUserDistrict || 'সব শহর'
+  );
+  const [isFilterOpen, setIsFilterOpen] = useState(true);
 
-  // Filter doctors based on search query & selected category
+  // If user signs in on client side, automatically default to their district
+  React.useEffect(() => {
+    if (!initialUserDistrict) {
+      fetch('/api/auth/me')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.user?.district) {
+            setSelectedDistrict(data.user.district);
+            setSelectedDivision(getDivisionByDistrict(data.user.district));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [initialUserDistrict]);
+
+  // Extract unique hospitals from doctor schedules & hospital info
+  const hospitalList = useMemo(() => {
+    const set = new Set<string>();
+    initialDoctors.forEach((doc) => {
+      if (doc.hospital?.name) set.add(doc.hospital.name);
+      if (doc.schedules) {
+        doc.schedules.forEach((s: any) => {
+          if (s.chamberName && s.chamberName.trim()) set.add(s.chamberName.trim());
+        });
+      }
+    });
+    return Array.from(set).sort();
+  }, [initialDoctors]);
+
+  // District options filtered by selected division
+  const availableDistricts = useMemo(() => {
+    if (selectedDivision === 'সব বিভাগ' || !BD_DIVISIONS_MAP[selectedDivision]) {
+      const all: string[] = [];
+      Object.values(BD_DIVISIONS_MAP).forEach((distList) => all.push(...distList));
+      return Array.from(new Set(all)).sort();
+    }
+    return BD_DIVISIONS_MAP[selectedDivision] || [];
+  }, [selectedDivision]);
+
+  const divisionOptions = useMemo(() => [
+    { value: 'সব বিভাগ', label: 'সব বিভাগ' },
+    ...Object.keys(BD_DIVISIONS_MAP).map((divName) => ({ value: divName, label: divName }))
+  ], []);
+
+  const districtOptions = useMemo(() => [
+    { value: 'সব শহর', label: 'সব শহর' },
+    ...availableDistricts.map((distName) => ({ value: distName, label: distName }))
+  ], [availableDistricts]);
+
+  const hospitalOptions = useMemo(() => [
+    { value: 'সব হাসপাতাল', label: 'সব হাসপাতাল' },
+    ...hospitalList.map((hosp) => ({ value: hosp, label: hosp }))
+  ], [hospitalList]);
+
+  const specialtyOptions = useMemo(() => [
+    { value: 'all', label: 'সব বিশেষজ্ঞ' },
+    ...SPECIALTY_CATEGORIES.filter((c) => c.id !== 'all').map((cat) => ({ value: cat.id, label: cat.labelBn }))
+  ], []);
+
+  // Filter doctors based on search query, category, hospital & location
   const filteredDoctors = useMemo(() => {
     return initialDoctors.filter((doc) => {
       const q = searchQuery.toLowerCase().trim();
@@ -107,180 +273,196 @@ export default function DoctorsClientView({
         }
       }
 
-      return matchesQuery && matchesSpecialty;
-    });
-  }, [initialDoctors, searchQuery, selectedSpecialty]);
+      // Hospital Match
+      let matchesHospital = true;
+      if (selectedHospital !== 'সব হাসপাতাল') {
+        matchesHospital = 
+          doc.hospital?.name === selectedHospital ||
+          doc.schedules?.some((s: any) => s.chamberName === selectedHospital);
+      }
 
-  // Compute counts per category for badge counters
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: initialDoctors.length };
-    
-    SPECIALTY_CATEGORIES.forEach((cat) => {
-      if (cat.id === 'all') return;
-      const cnt = initialDoctors.filter((doc) => {
-        const docText = `
-          ${doc.specialization || ''} 
-          ${doc.department?.nameEn || ''} 
-          ${doc.department?.nameBn || ''} 
-          ${doc.degrees || ''} 
-          ${doc.bio || ''}
-        `.toLowerCase();
-        return cat.keywords.some((kw) => docText.includes(kw.toLowerCase()));
-      }).length;
-      counts[cat.id] = cnt;
-    });
+      // Division & District Location Match
+      let matchesLocation = true;
+      if (selectedDivision !== 'সব বিভাগ' && selectedDivision !== 'সকল বিভাগ') {
+        const divMatch = 
+          (doc.hospital?.district?.division?.nameBn && doc.hospital.district.division.nameBn.includes(selectedDivision)) ||
+          (doc.hospital?.district?.division?.nameEn && doc.hospital.district.division.nameEn.toLowerCase().includes(selectedDivision.toLowerCase())) ||
+          (typeof doc.hospital?.district?.division === 'string' && doc.hospital.district.division.includes(selectedDivision)) ||
+          doc.schedules?.some((s: any) => s.division && s.division.includes(selectedDivision)) ||
+          (selectedDivision === 'খুলনা' && (
+            (doc.hospital?.address && (doc.hospital.address.toLowerCase().includes('chuadanga') || doc.hospital.address.includes('চুয়াডাঙ্গা'))) ||
+            (doc.hospital?.name && (doc.hospital.name.toLowerCase().includes('chuadanga') || doc.hospital.name.includes('চুয়াডাঙ্গা'))) ||
+            doc.schedules?.some((s: any) => (s.district && (s.district.includes('চুয়াডাঙ্গা') || s.district.toLowerCase().includes('chuadanga'))))
+          ));
+        if (!divMatch) matchesLocation = false;
+      }
+      if (matchesLocation && selectedDistrict !== 'সব শহর' && selectedDistrict !== 'সকল জেলা') {
+        const cleanDist = selectedDistrict.replace(' জেলা', '').trim();
+        const distMatch = 
+          (doc.hospital?.district?.name && doc.hospital.district.name.includes(cleanDist)) ||
+          (doc.hospital?.district?.nameBn && doc.hospital.district.nameBn.includes(cleanDist)) ||
+          (doc.hospital?.district?.nameEn && doc.hospital.district.nameEn.toLowerCase().includes(cleanDist.toLowerCase())) ||
+          (doc.hospital?.name && (doc.hospital.name.includes(cleanDist) || (cleanDist === 'চুয়াডাঙ্গা' && doc.hospital.name.toLowerCase().includes('chuadanga')))) ||
+          (doc.hospital?.address && (doc.hospital.address.includes(cleanDist) || (cleanDist === 'চুয়াডাঙ্গা' && doc.hospital.address.toLowerCase().includes('chuadanga')))) ||
+          (doc.chamberRoom && doc.chamberRoom.includes(cleanDist)) ||
+          doc.schedules?.some((s: any) => 
+            (s.district && (s.district.includes(cleanDist) || (cleanDist === 'চুয়াডাঙ্গা' && s.district.toLowerCase().includes('chuadanga')))) ||
+            (s.chamberName && (s.chamberName.includes(cleanDist) || (cleanDist === 'চুয়াডাঙ্গা' && s.chamberName.toLowerCase().includes('chuadanga')))) ||
+            (s.chamberAddress && (s.chamberAddress.includes(cleanDist) || (cleanDist === 'চুয়াডাঙ্গা' && s.chamberAddress.toLowerCase().includes('chuadanga'))))
+          );
+        if (!distMatch) matchesLocation = false;
+      }
 
-    return counts;
-  }, [initialDoctors]);
+      return matchesQuery && matchesSpecialty && matchesHospital && matchesLocation;
+    });
+  }, [initialDoctors, searchQuery, selectedSpecialty, selectedHospital, selectedDivision, selectedDistrict]);
 
   const handleResetFilters = () => {
     setSearchQuery('');
     setSelectedSpecialty('all');
+    setSelectedHospital('সব হাসপাতাল');
+    setSelectedDivision('সব বিভাগ');
+    setSelectedDistrict('সব শহর');
   };
 
-  const isFiltered = searchQuery.trim() !== '' || selectedSpecialty !== 'all';
+  const isFiltered = 
+    searchQuery.trim() !== '' || 
+    selectedSpecialty !== 'all' || 
+    selectedHospital !== 'সব হাসপাতাল' || 
+    (selectedDivision !== 'সব বিভাগ' && selectedDivision !== 'সকল বিভাগ') || 
+    (selectedDistrict !== 'সব শহর' && selectedDistrict !== 'সকল জেলা');
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50/80 via-sky-50/20 to-slate-100/60 py-8 sm:py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="min-h-screen bg-[#F4F5F7] pt-2.5 pb-6 sm:py-10">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
         
-        {/* ========================================================================= */}
-        {/* 🌟 HERO & SEARCH HEADER SECTION */}
-        {/* ========================================================================= */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-nuvicaNavy-950 via-slate-900 to-sky-950 text-white p-6 sm:p-10 shadow-xl border border-white/10">
-          {/* Subtle Background Glows */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
-
-          <div className="relative z-10 space-y-4 sm:space-y-5">
-            {/* Title */}
-            <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
-                চুয়াডাঙ্গার <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-sky-200 to-teal-200">বিশেষজ্ঞ ডাক্তার</span> তালিকা
-              </h1>
-            </div>
-
-            {/* Search Input Box */}
-            <div>
-              <div className="relative flex items-center bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-2xl border border-white/40 focus-within:ring-4 focus-within:ring-sky-400/30 transition-all">
-                <div className="pl-3.5 pr-2 text-slate-400">
-                  <Search className="w-5 h-5 text-sky-600" />
-                </div>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="ডাক্তারের নাম, বিভাগ বা স্পেশালিটি খুঁজুন (যেমন: হৃদরোগ, গাইনি, ডা. মাহবুবুর)..."
-                  className="w-full bg-transparent text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:outline-none font-semibold py-2 px-1"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer mr-1"
-                    title="ক্লিয়ার করুন"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-                <div className="hidden sm:flex items-center pr-2 pl-3 border-l border-slate-200 text-xs font-bold text-slate-500 shrink-0">
-                  <span>{toBanglaDigits(filteredDoctors.length)} জন ডাক্তার</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
+        {/* SEO Heading (Screen reader accessible) */}
+        <h1 className="sr-only">
+          {selectedDistrict !== 'সব শহর' && selectedDistrict !== 'সকল জেলা' 
+            ? `${selectedDistrict.replace(' জেলা', '')} জেলার` 
+            : selectedDivision !== 'সব বিভাগ' && selectedDivision !== 'সকল বিভাগ' 
+            ? `${selectedDivision.replace(' বিভাগ', '')} বিভাগের` 
+            : 'বাংলাদেশের'} বিশেষজ্ঞ ডাক্তার তালিকা
+        </h1>
 
         {/* ========================================================================= */}
-        {/* 🏷️ SPECIALTY FILTER PILLS (CATEGORY BAR WITH EXPAND / MINIMIZE) */}
+        {/* 🌟 2. SEARCH & FILTER CARD (Custom Ultra-Smooth Popover Dropdowns) */}
         {/* ========================================================================= */}
-        <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-sm transition-all duration-300">
+        <div className="bg-white rounded-[28px] p-4 sm:p-6 shadow-xs border border-slate-200/80 space-y-4">
           
-          {/* Entire Header Row is Clickable Trigger */}
-          <div 
-            onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-            className="flex items-center justify-between gap-2 cursor-pointer select-none -m-1 p-1 rounded-2xl hover:bg-slate-50/80 transition-colors"
-            title={isFilterExpanded ? 'ফিল্টার মিনিমাইজ করতে ক্লিক করুন' : 'ফিল্টার দেখতে যেকোনো জায়গায় ক্লিক করুন'}
-          >
-            <div className="flex items-center gap-2.5 text-xs sm:text-sm font-extrabold text-nuvicaNavy-950 group-hover:text-sky-700 transition-colors text-left flex-1 min-w-0">
-              <div className="w-7 h-7 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100 shadow-2xs shrink-0">
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-              </div>
-              <div className="flex items-center gap-2 flex-wrap min-w-0">
-                <span className="truncate">বিশেষজ্ঞ বিভাগ অনুযায়ী ফিল্টার করুন:</span>
-                {!isFilterExpanded && selectedSpecialty !== 'all' && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-lg border border-sky-100 shadow-2xs shrink-0">
-                    🎯 {SPECIALTY_CATEGORIES.find((c) => c.id === selectedSpecialty)?.labelBn}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              {isFiltered && (
+          {/* Top Row: Search Input + Blue Filter Button */}
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            
+            {/* Search Input Box */}
+            <div className="flex-1 relative flex items-center bg-[#F8FAFC] border border-slate-200/90 rounded-2xl px-3.5 sm:px-4 py-2.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all shadow-2xs">
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 mr-2 sm:mr-2.5 shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="ডাক্তারের নাম, হাসপাতাল বা বিশেষজ্ঞ খুঁজুন..."
+                className="w-full bg-transparent text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none font-medium py-1"
+              />
+              {searchQuery && (
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleResetFilters();
-                  }}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer border border-rose-100 shadow-2xs"
-                  title="ফিল্টার রিসেট করুন"
+                  onClick={() => setSearchQuery('')}
+                  className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer mr-0.5 shrink-0"
+                  title="ক্লিয়ার করুন"
                 >
-                  <RotateCcw className="w-3 h-3" />
-                  <span className="hidden sm:inline">রিসেট</span>
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
-
-              <div
-                className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-sky-50 text-slate-500 hover:text-sky-700 transition-all border border-slate-200/80 shadow-2xs"
-                aria-label="ফিল্টার টগল করুন"
-              >
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform duration-300 ${
-                    isFilterExpanded ? 'rotate-180 text-sky-600' : 'text-slate-500'
-                  }`}
-                />
-              </div>
             </div>
+
+            {/* Sky Blue Filter Button */}
+            <button
+              type="button"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="bg-sky-600 hover:bg-sky-700 active:scale-95 text-white font-bold text-xs sm:text-sm px-4 sm:px-6 py-3 rounded-2xl flex items-center gap-1.5 sm:gap-2 shadow-xs transition-all cursor-pointer shrink-0"
+              title="ফিল্টার অপশন টগল করুন"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>ফিল্টার</span>
+            </button>
+
           </div>
 
-          {/* ULTRA-SMOOTH ACCORDION COLLAPSIBLE FILTER PILLS */}
-          <div className={`accordion-smooth-wrapper ${isFilterExpanded ? 'open-card' : ''}`}>
-            <div className="accordion-smooth-inner">
-              <div className="pt-3.5 border-t border-slate-100 mt-3.5">
-                {/* Scrollable / Wrapping Pills */}
-                <div className="flex flex-wrap gap-2">
-                  {SPECIALTY_CATEGORIES.map((cat) => {
-                    const isSelected = selectedSpecialty === cat.id;
-                    const count = categoryCounts[cat.id] ?? 0;
+          {/* 2-Column Exact Filter Grid with Smooth Popover Dropdowns */}
+          {isFilterOpen && (
+            <div className="space-y-4 pt-1 animate-fadeIn">
+              
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                
+                {/* 🌐 ১. বিভাগ (Division) */}
+                <CustomSmoothDropdown
+                  label="বিভাগ"
+                  value={selectedDivision}
+                  options={divisionOptions}
+                  onChange={(val) => {
+                    setSelectedDivision(val);
+                    setSelectedDistrict('সব শহর');
+                  }}
+                />
 
-                    // Hide empty specialty categories if they have 0 doctors (except 'all')
-                    if (cat.id !== 'all' && count === 0) return null;
+                {/* 📍 ২. শহর (City / District) */}
+                <CustomSmoothDropdown
+                  label="শহর"
+                  value={selectedDistrict}
+                  options={districtOptions}
+                  onChange={(val) => setSelectedDistrict(val)}
+                  alignRight={true}
+                />
 
-                    return (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => setSelectedSpecialty(cat.id)}
-                        className={`group inline-flex items-center px-4 py-2 rounded-2xl text-xs font-extrabold transition-all duration-200 cursor-pointer select-none border ${
-                          isSelected
-                            ? 'bg-sky-600 text-white border-sky-600 shadow-md shadow-sky-600/25 scale-[1.02]'
-                            : 'bg-slate-50 hover:bg-sky-50/80 text-slate-700 hover:text-sky-800 border-slate-200/80 hover:border-sky-200'
-                        }`}
-                      >
-                        <span>{cat.labelBn}</span>
-                      </button>
-                    );
-                  })}
+                {/* 🏥 ৩. হাসপাতাল (Hospital) */}
+                <CustomSmoothDropdown
+                  label="হাসপাতাল"
+                  value={selectedHospital}
+                  options={hospitalOptions}
+                  onChange={(val) => setSelectedHospital(val)}
+                />
+
+                {/* 🩺 ৪. বিশেষজ্ঞ (Specialty) */}
+                <CustomSmoothDropdown
+                  label="বিশেষজ্ঞ"
+                  value={selectedSpecialty}
+                  options={specialtyOptions}
+                  onChange={(val) => setSelectedSpecialty(val)}
+                  alignRight={true}
+                />
+
+              </div>
+
+              {/* Bottom Row: Total Count + Reset / Close Action Link */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                <span className="text-xs font-bold text-slate-500">
+                  মোট প্রাপ্ত: <span className="text-sky-600 font-black">{toBanglaDigits(filteredDoctors.length)} জন</span> ডাক্তার
+                </span>
+
+                <div className="flex items-center gap-3">
+                  {isFiltered && (
+                    <button
+                      type="button"
+                      onClick={handleResetFilters}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer"
+                    >
+                      ফিল্টার মুছুন
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsFilterOpen(false)}
+                    className="text-xs font-bold text-sky-600 hover:underline cursor-pointer"
+                  >
+                    বন্ধ করুন
+                  </button>
                 </div>
               </div>
+
             </div>
-          </div>
+          )}
 
         </div>
-
 
         {/* ========================================================================= */}
         {/* 🩺 DOCTORS GRID OR EMPTY STATE */}
@@ -298,6 +480,7 @@ export default function DoctorsClientView({
                 <DoctorCardItem
                   key={doc.id}
                   doc={doc}
+                  filteredDistrict={selectedDistrict !== 'সকল জেলা' ? selectedDistrict : undefined}
                   ALL_WEEK_DAYS={ALL_WEEK_DAYS}
                   availableDayNamesSet={availableDayNamesSet}
                 />

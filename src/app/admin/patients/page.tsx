@@ -32,7 +32,7 @@ export default async function AdminPatientsPage() {
         age: apt.patientAge,
         gender: apt.patientGender,
         totalAppointments: 1,
-        lastHospital: apt.hospital.name,
+        lastHospital: apt.hospital?.name || apt.chamberName || 'প্রধান চেম্বার',
         lastDoctor: apt.doctor.name,
         lastDate: apt.appointmentDate,
       });

@@ -47,3 +47,4 @@ strix_runs/
 *.db
 .env.test
 /src/generated/
+YOUTUBE_QUIZ_AUTOMATION_PROJECT_CONTEXT.md

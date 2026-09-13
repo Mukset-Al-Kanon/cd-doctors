@@ -114,25 +114,11 @@ export default function AiAssistantChat() {
   const [unreadCount, setUnreadCount] = useState(1);
   const [hasOpenedBefore, setHasOpenedBefore] = useState(false);
   const [hasWelcomed, setHasWelcomed] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Hide AI chat assistant on auth pages (login/register) and admin/doctor portals
-  const isDoctorPortal = pathname === '/doctor' || pathname.startsWith('/doctor/');
-  const isAdminPortal = pathname === '/admin' || pathname.startsWith('/admin/');
-  const isAuthPage = 
-    pathname === '/login' || 
-    pathname.startsWith('/login/') || 
-    pathname === '/register' || 
-    pathname.startsWith('/register/');
-
-  if (isAdminPortal || isDoctorPortal || isAuthPage) {
-    return null;
-  }
-
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -197,6 +183,19 @@ export default function AiAssistantChat() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
+
+  // Hide AI chat assistant on auth pages (login/register) and admin/doctor portals
+  const isDoctorPortal = pathname === '/doctor' || pathname.startsWith('/doctor/');
+  const isAdminPortal = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isAuthPage = 
+    pathname === '/login' || 
+    pathname.startsWith('/login/') || 
+    pathname === '/register' || 
+    pathname.startsWith('/register/');
+
+  if (isAdminPortal || isDoctorPortal || isAuthPage) {
+    return null;
+  }
 
   const handleToggle = () => {
     setIsOpen((prev) => !prev);
@@ -299,16 +298,12 @@ export default function AiAssistantChat() {
     }
   };
 
-  // Do not render AI chat on admin or doctor dashboard
-  if (pathname.startsWith('/admin') || pathname.startsWith('/doctor')) {
-    return null;
-  }
 
   return (
     <>
       {/* CHAT TOGGLE BUTTON */}
       {!isOpen && (
-        <div className="fixed bottom-20 md:bottom-6 right-3.5 sm:right-6 z-40 font-sans">
+        <div className="fixed bottom-20 md:bottom-6 right-3.5 sm:right-6 z-40 font-sans floating-ai-button">
           <button
             onClick={handleToggle}
             aria-label="CD Doctors Assistant Chat"

@@ -13,7 +13,7 @@ export async function GET() {
     try {
       userRecord = await db.user.findUnique({
         where: { id: session.userId },
-        select: { phone: true, name: true, email: true },
+        select: { phone: true, name: true, email: true, district: true },
       }).catch(() => null);
     } catch (e) {
       // Ignore
@@ -63,6 +63,7 @@ export async function GET() {
       user: {
         ...session,
         phone: userRecord?.phone || null,
+        district: userRecord?.district || session.district || 'চুয়াডাঙ্গা',
         isDonor,
         donorStatus,
         donorBloodGroup,

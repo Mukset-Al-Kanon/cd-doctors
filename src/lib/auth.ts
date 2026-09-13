@@ -13,6 +13,7 @@ export interface UserSession {
   email: string;
   role: Role;
   hospitalId: string | null;
+  district?: string | null;
 }
 
 export function signToken(payload: UserSession): string {

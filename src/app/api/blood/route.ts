@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const bloodGroup = searchParams.get('bloodGroup');
+    const district = searchParams.get('district');
     const area = searchParams.get('area');
     const q = searchParams.get('q');
 
@@ -29,12 +30,34 @@ export async function GET(request: Request) {
         whereClause.area = area;
       }
 
-      if (q && q.trim() !== '') {
+      if (district && district !== 'All' && district !== 'সকল জেলা') {
+        const cleanD = district.replace(' জেলা', '').trim();
         whereClause.OR = [
+          { address: { contains: cleanD } },
+          { area: { contains: cleanD } },
+          ...(cleanD === 'চুয়াডাঙ্গা' ? [
+            { address: { contains: 'Chuadanga' } },
+            { area: { contains: 'Chuadanga' } },
+            { address: { contains: 'chuadanga' } }
+          ] : [])
+        ];
+      }
+
+      if (q && q.trim() !== '') {
+        const queryConditions = [
           { fullName: { contains: q.trim() } },
           { address: { contains: q.trim() } },
           { note: { contains: q.trim() } },
         ];
+        if (whereClause.OR) {
+          whereClause.AND = [
+            { OR: whereClause.OR },
+            { OR: queryConditions },
+          ];
+          delete whereClause.OR;
+        } else {
+          whereClause.OR = queryConditions;
+        }
       }
 
       const dbDonors = await db.bloodDonor.findMany({
@@ -68,6 +91,11 @@ export async function GET(request: Request) {
       donors = FALLBACK_DONORS.filter((donor) => {
         if (bloodGroup && bloodGroup !== 'All' && donor.bloodGroup !== bloodGroup) return false;
         if (area && area !== 'All' && donor.area !== area) return false;
+        if (district && district !== 'All' && district !== 'সকল জেলা') {
+          const dLow = district.toLowerCase();
+          const matchDist = donor.address.toLowerCase().includes(dLow) || donor.area.toLowerCase().includes(dLow);
+          if (!matchDist) return false;
+        }
         if (q && q.trim() !== '') {
           const term = q.trim().toLowerCase();
           return (

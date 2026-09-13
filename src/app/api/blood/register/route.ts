@@ -14,6 +14,7 @@ export async function POST(request: Request) {
       bloodGroup,
       age,
       gender,
+      district,
       address,
       area,
       availability,
@@ -57,9 +58,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!address || typeof address !== 'string' || address.trim().length === 0) {
-      return NextResponse.json({ error: 'Address is required.' }, { status: 400 });
-    }
+    const effectiveAddress = (address && typeof address === 'string' && address.trim().length > 0)
+      ? address.trim()
+      : `${(area || '').trim()}${district ? `, ${district.trim()}` : ''}`;
 
     if (!area || typeof area !== 'string' || area.trim().length === 0) {
       return NextResponse.json({ error: 'Area / Upazila selection is required.' }, { status: 400 });
@@ -84,6 +85,10 @@ export async function POST(request: Request) {
       );
     }
 
+    const finalAddress = district && !effectiveAddress.includes(district)
+      ? `${effectiveAddress}, ${district.trim()}`
+      : effectiveAddress;
+
     // Create donor record with status: pending
     const newDonor = await db.bloodDonor.create({
       data: {
@@ -92,7 +97,7 @@ export async function POST(request: Request) {
         bloodGroup,
         age: numAge,
         gender: gender || 'Other',
-        address: address.trim(),
+        address: finalAddress,
         area: area.trim(),
         availability: availability === 'unavailable' ? 'unavailable' : 'available',
         lastDonationDate: lastDonationDate || null,

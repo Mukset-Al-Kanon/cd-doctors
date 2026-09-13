@@ -8,12 +8,14 @@ import HomeHospitalCarousel from '@/components/HomeHospitalCarousel';
 import HomeDoctorCarousel from '@/components/HomeDoctorCarousel';
 import StatCards from '@/components/StatCards';
 import PatientSignupBanner from '@/components/PatientSignupBanner';
+import HomeCategoryGrid from '@/components/HomeCategoryGrid';
 import { FALLBACK_HOSPITALS, FALLBACK_DOCTORS } from '@/lib/staticHospitalData';
 
 export const revalidate = 0;
 
 export default async function HomePage() {
   const session = await getSession().catch(() => null);
+  const userDistrict = session?.district || null;
   let registeredHospitals: any[] = FALLBACK_HOSPITALS;
   let registeredDoctors: any[] = FALLBACK_DOCTORS;
   let doctorCount = 30;
@@ -24,7 +26,15 @@ export default async function HomePage() {
       db.hospital.findMany({
         where: {
           status: { in: ['ACTIVE', 'APPROVED'] },
-          district: { slug: 'chuadanga' },
+          ...(userDistrict
+            ? {
+                OR: [
+                  { district: { nameBn: userDistrict } },
+                  { address: { contains: userDistrict } },
+                  { name: { contains: userDistrict } },
+                ],
+              }
+            : {}),
         },
         include: {
           facilities: true,
@@ -35,10 +45,15 @@ export default async function HomePage() {
       db.doctor.findMany({
         where: {
           status: 'ACTIVE',
-          hospital: {
-            status: { in: ['ACTIVE', 'APPROVED'] },
-            district: { slug: 'chuadanga' },
-          },
+          ...(userDistrict
+            ? {
+                OR: [
+                  { hospital: { district: { nameBn: userDistrict } } },
+                  { hospital: { address: { contains: userDistrict } } },
+                  { schedules: { some: { district: { contains: userDistrict } } } },
+                ],
+              }
+            : {}),
         },
         include: {
           hospital: true,
@@ -64,9 +79,13 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50/70 via-sky-50/30 to-slate-50/60 space-y-16 lg:space-y-[96px] pb-16 lg:pb-[96px]">
-      {/* Interactive Registered Hospitals Hero Slider */}
-      <HeroHospitalSlider hospitals={registeredHospitals} />
+    <div className="min-h-screen bg-white space-y-6 sm:space-y-12 pb-16 lg:pb-[96px] pt-0 md:pt-3">
+      {/* 🌟 Category Icons Section (Directly below header) */}
+      <HomeCategoryGrid />
+
+        {/* Interactive Registered Hospitals Hero Slider */}
+        <HeroHospitalSlider hospitals={registeredHospitals} />
+
 
       {/* 1. Specialist Doctors Section (First) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16 lg:mb-[80px]">
@@ -74,10 +93,10 @@ export default async function HomePage() {
         <div className="border-b border-slate-200/80 pb-5 mb-6 lg:mb-[40px] text-center">
           <div className="space-y-2 flex flex-col items-center justify-center">
             <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-sky-50 border border-sky-200/60 text-sky-700 text-xs font-extrabold lg:tracking-[4px]">
-              <Stethoscope className="w-3.5 h-3.5 text-sky-600" /> ভেরিফাইড বিশেষজ্ঞ প্যানেল
+              <Stethoscope className="w-3.5 h-3.5 text-sky-600" /> {userDistrict ? `${userDistrict} ভেরিফাইড বিশেষজ্ঞ প্যানেল` : 'ভেরিফাইড বিশেষজ্ঞ প্যানেল'}
             </div>
             <h2 className="text-2xl sm:text-4xl lg:text-[30px] font-black lg:font-bold text-nuvicaNavy-900 tracking-tight">
-              Specialist Doctors in Chuadanga
+              {userDistrict ? `Specialist Doctors in ${userDistrict}` : 'Specialist Doctors Directory'}
             </h2>
           </div>
         </div>
@@ -108,10 +127,10 @@ export default async function HomePage() {
         <div className="border-b border-slate-200/80 pb-5 mb-6 lg:mb-[40px] text-center">
           <div className="space-y-2 flex flex-col items-center justify-center">
             <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-sky-50 border border-sky-200/60 text-sky-700 text-xs font-extrabold lg:tracking-[4px]">
-              <Building2 className="w-3.5 h-3.5 text-sky-600" /> চুয়াডাঙ্গা স্বাস্থ্যসেবা ডিরেক্টরি
+              <Building2 className="w-3.5 h-3.5 text-sky-600" /> {userDistrict ? `${userDistrict} স্বাস্থ্যসেবা ডিরেক্টরি` : 'বাংলাদেশ স্বাস্থ্যসেবা ডিরেক্টরি'}
             </div>
             <h2 className="text-2xl sm:text-4xl lg:text-[30px] font-black lg:font-bold text-nuvicaNavy-900 tracking-tight">
-              Hospitals & Clinics in Chuadanga
+              {userDistrict ? `Hospitals & Clinics in ${userDistrict}` : 'Hospitals & Clinics Directory'}
             </h2>
           </div>
         </div>

@@ -142,31 +142,31 @@ export default async function HospitalProfilePage({ params }: PageProps) {
             </div>
 
             {/* 📊 Bottom 3-Column Stats Row */}
-            <div className="pt-4 border-t border-slate-100 grid grid-cols-3 gap-2 text-left">
-              <div>
+            <div className="pt-4 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
+              <div className="flex flex-col items-center justify-center">
                 <span className="block text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                   {(hospital.doctors || []).length}
                 </span>
                 <span className="text-[11px] sm:text-xs font-bold text-slate-400 mt-0.5 block">
-                  ডাক্তার (Doctors)
+                  Doctors
                 </span>
               </div>
 
-              <div>
+              <div className="flex flex-col items-center justify-center">
                 <span className="block text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                   {(hospital.facilities || []).length || 6}
                 </span>
                 <span className="text-[11px] sm:text-xs font-bold text-slate-400 mt-0.5 block">
-                  বিভাগ (Depts)
+                  Departments
                 </span>
               </div>
 
-              <div>
+              <div className="flex flex-col items-center justify-center">
                 <span className="block text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                  ২৪/৭
+                  24/7
                 </span>
                 <span className="text-[11px] sm:text-xs font-bold text-slate-400 mt-0.5 block">
-                  জরুরি সেবা (24/7)
+                  Emergency
                 </span>
               </div>
             </div>

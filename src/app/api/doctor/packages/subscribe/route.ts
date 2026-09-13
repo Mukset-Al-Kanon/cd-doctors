@@ -4,30 +4,37 @@ import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
-const PACKAGES_CONFIG: Record<string, { name: string; price: number; posts: number; boostDays: number }> = {
-  STARTER: {
-    name: 'Starter',
-    price: 599,
-    posts: 1,
-    boostDays: 1,
+export const DURATION_PACKAGES_CONFIG: Record<
+  string,
+  { name: string; labelBn: string; price: number; durationDays: number; savePercent: number }
+> = {
+  MONTH_1: {
+    name: '1 Month Membership',
+    labelBn: '১ মাস',
+    price: 349,
+    durationDays: 30,
+    savePercent: 0,
   },
-  GROWTH: {
-    name: 'Growth',
+  MONTH_3: {
+    name: '3 Months Membership',
+    labelBn: '৩ মাস',
+    price: 649,
+    durationDays: 90,
+    savePercent: 38,
+  },
+  MONTH_6: {
+    name: '6 Months Membership',
+    labelBn: '৬ মাস',
     price: 999,
-    posts: 2,
-    boostDays: 3,
+    durationDays: 180,
+    savePercent: 52,
   },
-  VIP_PRO: {
-    name: 'Pro',
-    price: 1999,
-    posts: 5,
-    boostDays: 7,
-  },
-  PRO: {
-    name: 'Pro',
-    price: 1999,
-    posts: 5,
-    boostDays: 7,
+  MONTH_12: {
+    name: '12 Months Membership',
+    labelBn: '১২ মাস',
+    price: 1499,
+    durationDays: 365,
+    savePercent: 64,
   },
 };
 
@@ -37,13 +44,13 @@ export async function POST(request: Request) {
     const doctorId = cookieStore.get('cddoctor_session')?.value;
 
     if (!doctorId) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'অননুমোদিত অ্যাক্সেস। অনুগ্রহ করে লগইন করুন।' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { packageKey } = body; // "STARTER" | "GROWTH" | "VIP_PRO"
+    const { packageKey } = body; // "MONTH_1" | "MONTH_3" | "MONTH_6" | "MONTH_12"
 
-    const selectedPkg = PACKAGES_CONFIG[packageKey];
+    const selectedPkg = DURATION_PACKAGES_CONFIG[packageKey];
     if (!selectedPkg) {
       return NextResponse.json({ success: false, error: 'অবৈধ প্যাকেজ নির্বাচন করেছেন।' }, { status: 400 });
     }
@@ -61,7 +68,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: `আপনার ওয়ালেটে পর্যাপ্ত ব্যালেন্স নেই। আরও ৳${shortage} টাকা রিচার্জ করুন।`,
+          error: `আপনার ওয়ালেটে পর্যাপ্ত ব্যালেন্স নেই। মেম্বারশিপ নিতে আরও ৳${shortage} রিচার্জ করুন।`,
           shortage: shortage,
           current_balance: doctor.walletBalance,
           required_amount: selectedPkg.price,
@@ -70,18 +77,24 @@ export async function POST(request: Request) {
       );
     }
 
-    const expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days validity
+    // Calculate expiry: if existing package is still active, extend from current expiry date, otherwise from now
+    const now = new Date();
+    const baseDate = doctor.subscriptionExpiresAt && doctor.subscriptionExpiresAt > now 
+      ? new Date(doctor.subscriptionExpiresAt) 
+      : now;
+      
+    const expiryDate = new Date(baseDate.getTime() + selectedPkg.durationDays * 24 * 60 * 60 * 1000);
 
-    // Atomic transaction: Deduct wallet + update quota + create debit transaction + create campaign record
-    const [updatedDoctor, transaction, campaign] = await db.$transaction([
+    // Atomic transaction: Deduct wallet + update subscription info + create transaction record
+    const [updatedDoctor, transaction] = await db.$transaction([
       db.doctor.update({
         where: { id: doctorId },
         data: {
           walletBalance: { decrement: selectedPkg.price },
-          activePackageName: selectedPkg.name,
+          activePackageName: packageKey,
+          subscriptionTier: packageKey,
+          subscriptionExpiresAt: expiryDate,
           packageExpiresAt: expiryDate,
-          remainingPosts: { increment: selectedPkg.posts },
-          remainingBoostDays: { increment: selectedPkg.boostDays },
         },
       }),
       db.walletTransaction.create({
@@ -90,34 +103,19 @@ export async function POST(request: Request) {
           amount: selectedPkg.price,
           type: 'DEBIT',
           method: 'PACKAGE_PURCHASE',
-          notes: `${selectedPkg.name} (৳${selectedPkg.price}) প্যাকেজ অ্যাক্টিভেশন`,
+          notes: `${selectedPkg.labelBn} (${selectedPkg.name} — ৳${selectedPkg.price}) মেম্বারশিপ অ্যাক্টিভেশন`,
           status: 'COMPLETED',
-        },
-      }),
-      db.doctorCampaign.create({
-        data: {
-          doctorId: doctorId,
-          packageName: packageKey,
-          priceBdt: selectedPkg.price,
-          totalPosts: selectedPkg.posts,
-          boostDays: selectedPkg.boostDays,
-          status: 'ACTIVE',
-          impressions: Math.floor(1500 + Math.random() * 2000),
-          reach: Math.floor(1000 + Math.random() * 1500),
-          clicks: Math.floor(50 + Math.random() * 100),
         },
       }),
     ]);
 
     return NextResponse.json({
       success: true,
-      message: `Congratulations! Your ${selectedPkg.name} Plan has been successfully activated.`,
+      message: `অভিনন্দন! আপনার ${selectedPkg.labelBn} মেম্বারশিপ প্যাকেজটি সফলভাবে সক্রিয় হয়েছে।`,
       wallet_balance: updatedDoctor.walletBalance,
-      active_package: updatedDoctor.activePackageName,
-      remaining_posts: updatedDoctor.remainingPosts,
-      remaining_boost_days: updatedDoctor.remainingBoostDays,
+      subscription_tier: updatedDoctor.subscriptionTier,
+      subscription_expires_at: updatedDoctor.subscriptionExpiresAt,
       transaction: transaction,
-      campaign: campaign,
     });
   } catch (error: any) {
     console.error('Package subscription error:', error);

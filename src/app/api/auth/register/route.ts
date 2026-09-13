@@ -5,11 +5,13 @@ import { normalizeBdPhoneNumber, isPhoneVerified, verifyOtpCode } from '@/lib/ot
 
 export async function POST(request: Request) {
   try {
-    const { name, phone, password, otpCode } = await request.json();
+    const { name, phone, password, otpCode, district } = await request.json();
 
     if (!name || !phone || !password) {
       return NextResponse.json({ error: 'পুরো নাম, মোবাইল নম্বর এবং পাসওয়ার্ড প্রদান করুন।' }, { status: 400 });
     }
+
+    const userDistrict = (district && typeof district === 'string' && district.trim()) ? district.trim() : 'চুয়াডাঙ্গা';
 
     const normalizedPhone = normalizeBdPhoneNumber(phone);
     if (!normalizedPhone) {
@@ -63,6 +65,7 @@ export async function POST(request: Request) {
           phoneVerified: true,
           passwordHash,
           role: 'PATIENT',
+          district: userDistrict,
         },
       });
     } catch (e) {
@@ -73,6 +76,7 @@ export async function POST(request: Request) {
         email: systemEmail,
         phone: normalizedPhone,
         role: 'PATIENT',
+        district: userDistrict,
       };
     }
 
@@ -83,6 +87,7 @@ export async function POST(request: Request) {
       phone: normalizedPhone,
       role: 'PATIENT' as const,
       hospitalId: null,
+      district: newUser.district || userDistrict,
     };
 
     const token = signToken(sessionData);

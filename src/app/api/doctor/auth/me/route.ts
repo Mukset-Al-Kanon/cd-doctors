@@ -21,14 +21,24 @@ export async function GET(request: Request) {
       include: {
         hospital: { select: { id: true, name: true, address: true, phone: true } },
         department: { select: { id: true, nameBn: true, nameEn: true } },
-        schedules: true,
+        schedules: {
+          orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+        },
         walletTransactions: {
           orderBy: { createdAt: 'desc' },
-          take: 10,
+          take: 15,
         },
         campaigns: {
           orderBy: { createdAt: 'desc' },
-          take: 5,
+          take: 10,
+        },
+        withdrawalRequests: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
+        appointments: {
+          orderBy: { createdAt: 'desc' },
+          take: 20,
         },
       },
     });
@@ -61,13 +71,19 @@ export async function GET(request: Request) {
         walletBalance: doctor.walletBalance,
         activePackageName: doctor.activePackageName,
         packageExpiresAt: doctor.packageExpiresAt,
+        subscriptionTier: doctor.subscriptionTier,
+        subscriptionExpiresAt: doctor.subscriptionExpiresAt,
         remainingPosts: doctor.remainingPosts,
         remainingBoostDays: doctor.remainingBoostDays,
+        isTelemedicineAvailable: doctor.isTelemedicineAvailable,
+        telemedicineFee: doctor.telemedicineFee || 500,
         hospital: doctor.hospital,
         department: doctor.department,
         schedules: doctor.schedules,
         walletTransactions: doctor.walletTransactions,
         campaigns: doctor.campaigns,
+        withdrawalRequests: doctor.withdrawalRequests,
+        appointments: doctor.appointments,
       },
     });
   } catch (error: any) {

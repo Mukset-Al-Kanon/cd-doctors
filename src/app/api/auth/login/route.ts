@@ -45,6 +45,25 @@ export async function POST(request: Request) {
         phone: '01700000000',
         role: 'SUPER_ADMIN',
         hospitalId: null,
+        district: 'চুয়াডাঙ্গা',
+        passwordHash: '',
+      };
+    }
+
+    // Fallback for Demo Patient User Account
+    if (
+      !user &&
+      (inputAccount === '01711112233' || inputAccount.toLowerCase() === 'demo' || inputAccount.toLowerCase() === 'patient' || inputAccount.toLowerCase() === 'user@cddoctors.com') &&
+      (password === '123456' || password === 'password123')
+    ) {
+      user = {
+        id: 'demo-patient-user-01',
+        name: 'সাবির খান',
+        email: 'patient@cddoctors.com',
+        phone: '01711112233',
+        role: 'PATIENT',
+        hospitalId: null,
+        district: 'চুয়াডাঙ্গা',
         passwordHash: '',
       };
     }
@@ -77,6 +96,7 @@ export async function POST(request: Request) {
       phone: user.phone || normalizedPhone || null,
       role: user.role as any,
       hospitalId: user.hospitalId,
+      district: user.district || 'চুয়াডাঙ্গা',
     };
 
     const token = signToken(sessionData);

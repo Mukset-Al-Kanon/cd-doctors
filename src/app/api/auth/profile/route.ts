@@ -9,7 +9,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Unauthorized session' }, { status: 401 });
     }
 
-    const { name, email, phone } = await request.json();
+    const { name, email, phone, district } = await request.json();
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
@@ -21,6 +21,7 @@ export async function PUT(request: Request) {
         name: name.trim(),
         email: email ? email.trim() : undefined,
         phone: phone ? phone.trim() : undefined,
+        district: district ? district.trim() : undefined,
       },
     });
 
@@ -32,6 +33,7 @@ export async function PUT(request: Request) {
         name: updatedUser.name,
         email: updatedUser.email,
         phone: updatedUser.phone,
+        district: updatedUser.district || 'চুয়াডাঙ্গা',
       },
     });
   } catch (error: any) {

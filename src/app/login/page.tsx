@@ -17,8 +17,11 @@ import {
   KeyRound,
   Eye,
   EyeOff,
-  ChevronLeft
+  ChevronLeft,
+  MapPin,
+  Stethoscope
 } from 'lucide-react';
+import DistrictSelectDropdown from '@/components/DistrictSelectDropdown';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,6 +36,7 @@ export default function LoginPage() {
   const [regName, setRegName] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [regDistrict, setRegDistrict] = useState('চুয়াডাঙ্গা');
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [otpStep, setOtpStep] = useState<'FORM' | 'OTP'>('FORM');
   const [otpDigits, setOtpDigits] = useState(['', '', '', '']);
@@ -213,6 +217,7 @@ export default function LoginPage() {
           name: regName.trim(),
           phone: regPhone.trim(),
           password: regPassword,
+          district: regDistrict,
           otpCode,
         }),
       });
@@ -517,6 +522,16 @@ export default function LoginPage() {
                   </>
                 )}
               </button>
+
+              <div className="pt-2 text-center">
+                <Link
+                  href="/doctor/login"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-700 hover:text-sky-800 transition-colors"
+                >
+                  <Stethoscope className="w-3.5 h-3.5" />
+                  <span>আপনি কি একজন ডাক্তার? ডাক্তার লগইন পোর্টালে যান ➔</span>
+                </Link>
+              </div>
             </form>
           )}
 
@@ -586,6 +601,13 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Location / District Selection (Custom Sleek Dropdown) */}
+              <DistrictSelectDropdown
+                value={regDistrict}
+                onChange={setRegDistrict}
+                label="আপনার জেলা / লোকেশন"
+              />
 
               {/* Send OTP Button */}
               <button

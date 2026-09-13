@@ -33,6 +33,8 @@ interface HeroHospitalSliderProps {
 export default function HeroHospitalSlider({ hospitals = [] }: HeroHospitalSliderProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchEndX, setTouchEndX] = useState<number | null>(null);
 
   const slides = [
     // SLIDE 01 — CD DOCTORS (BRAND INTRO)
@@ -154,6 +156,26 @@ export default function HeroHospitalSlider({ hospitals = [] }: HeroHospitalSlide
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   }, [slides.length]);
 
+  // Touch Swipe Handlers for Mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEndX(null);
+    setTouchStartX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX === null || touchEndX === null) return;
+    const distance = touchStartX - touchEndX;
+    if (distance > 40) {
+      nextSlide();
+    } else if (distance < -40) {
+      prevSlide();
+    }
+  };
+
   // Autoplay Effect (5.5 seconds)
   useEffect(() => {
     if (isPaused) return;
@@ -173,9 +195,14 @@ export default function HeroHospitalSlider({ hospitals = [] }: HeroHospitalSlide
       aria-label="CD Doctors Hero Slider"
     >
       {/* ========================================================================= */}
-      {/* MOBILE HERO CONTAINER (< 768px): DEDICATED INTENTIONAL MOBILE-FIRST CARD  */}
+      {/* MOBILE HERO CONTAINER (< 768px): LANDSCAPE 19:9 CLEAN MINIMAL VIEW        */}
       {/* ========================================================================= */}
-      <div className="block md:hidden relative w-full h-[450px] xs:h-[465px] sm:h-[485px] rounded-[22px] overflow-hidden shadow-lg shadow-sky-950/20 border border-white/15 bg-nuvicaNavy-950 group">
+      <div 
+        className="block md:hidden relative w-full aspect-[19/9] min-h-[165px] max-h-[340px] rounded-[18px] xs:rounded-[22px] overflow-hidden shadow-md bg-nuvicaNavy-950 group select-none border-0 outline-none ring-0"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         
         {/* Layer 1: Mobile Background Images (Pure Smooth Fade) */}
         {slides.map((slide, idx) => (
@@ -194,99 +221,76 @@ export default function HeroHospitalSlider({ hospitals = [] }: HeroHospitalSlide
           </div>
         ))}
 
-        {/* Layer 2: Mobile Gradient Overlay */}
+        {/* Layer 2: Mobile Gradient Overlay (Horizontal Cinematic for Landscape 17:9) */}
         <div 
           className="absolute inset-0 z-10 pointer-events-none"
           style={{
-            background: 'linear-gradient(180deg, rgba(4, 16, 35, 0.20) 0%, rgba(4, 16, 35, 0.65) 45%, rgba(4, 16, 35, 0.94) 80%)'
+            background: 'linear-gradient(90deg, rgba(4, 16, 35, 0.94) 0%, rgba(4, 16, 35, 0.82) 44%, rgba(4, 16, 35, 0.45) 70%, rgba(4, 16, 35, 0.15) 100%)'
           }}
         />
 
-        {/* Layer 3: Mobile Text Content Blocks (Pure Opacity Fade per Slide) */}
+        {/* Layer 3: Mobile Text Content Blocks (Tappable Card without Badge, CTA, or Arrows) */}
         {slides.map((slide, idx) => (
-          <div
+          <Link
             key={slide.id}
-            className={`absolute inset-0 z-20 p-5 flex flex-col justify-between transition-opacity duration-800 ease-in-out ${
+            href={slide.ctaHref}
+            className={`absolute inset-0 z-20 p-4 xs:p-5 pb-5 xs:pb-6 flex flex-col justify-end transition-opacity duration-800 ease-in-out cursor-pointer ${
               idx === currentSlide ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
             }`}
           >
-            {/* Top-Left Category Badge */}
-            <div className="flex items-center justify-between">
-              <span className={`inline-flex items-center gap-1.5 text-[10px] font-extrabold tracking-wider uppercase ${slide.badgeTextColor} ${slide.badgeBgColor} border ${slide.badgeBorderColor} px-2.5 py-1 rounded-full backdrop-blur-md`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${slide.badgeDotColor} animate-pulse`} />
-                <span>{slide.category}</span>
-              </span>
-            </div>
-
-            {/* Lower-Left Text Block & CTA */}
-            <div className="space-y-2.5 text-left pb-1">
-              
+            {/* Lower Section: Clean Prominent Headline & Description */}
+            <div className="space-y-1 xs:space-y-1.5 text-left max-w-[72%] sm:max-w-[75%]">
               {/* Headline */}
               <h1 
-                className="text-[25px] xs:text-[27px] font-extrabold tracking-tight font-noto-bengali-heading max-w-[310px] space-y-0.5"
+                className="text-[16px] xs:text-[18px] sm:text-[22px] font-extrabold tracking-tight font-noto-bengali-heading leading-tight space-y-0.5"
                 style={{ fontFamily: 'var(--font-noto-sans-bengali), "Noto Sans Bengali", sans-serif', fontWeight: 800 }}
               >
-                <span className="block leading-[1.1] text-white">{slide.headlineWhite}</span>
-                <span className={`block leading-[1.1] ${slide.accentTextColor} font-extrabold`}>{slide.headlineCyan}</span>
+                <span className="block text-white leading-tight">{slide.headlineWhite}</span>
+                <span className={`block ${slide.accentTextColor} font-extrabold leading-tight`}>{slide.headlineCyan}</span>
               </h1>
 
-              {/* Short Mobile Description (2 lines max) */}
-              <p className="text-xs text-white/85 font-medium leading-relaxed max-w-[280px] line-clamp-2">
-                {slide.description}
-              </p>
-
-              {/* Compact Mobile CTA (Left Aligned, Fixed Consistent Width) */}
-              <div className="pt-1">
-                <Link
-                  href={slide.ctaHref}
-                  className={`inline-flex items-center justify-between min-w-[155px] h-[42px] px-4 rounded-[12px] ${slide.ctaBgColor} text-white font-semibold text-xs shadow-md group/btn`}
-                >
-                  <span>{slide.ctaText}</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform ml-2" />
-                </Link>
+              {/* Short Description (Break to new line after 5 words) */}
+              <div className="text-[11px] xs:text-[12px] sm:text-[13px] text-white/85 font-medium leading-snug">
+                {(() => {
+                  const words = slide.description.trim().split(/\s+/);
+                  if (words.length > 5) {
+                    return (
+                      <>
+                        <span className="block">{words.slice(0, 5).join(' ')}</span>
+                        <span className="block">{words.slice(5).join(' ')}</span>
+                      </>
+                    );
+                  }
+                  return slide.description;
+                })()}
               </div>
-
-              {/* Ultra-Aesthetic Mobile Glassmorphic Navigation Bar */}
-              <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-3">
-                
-                {/* Step Progress Pills */}
-                <div className="flex items-center gap-1.5 bg-slate-900/60 backdrop-blur-md px-3 py-2 rounded-full border border-white/10">
-                  {slides.map((s, i) => (
-                    <button
-                      key={s.id}
-                      onClick={() => setCurrentSlide(i)}
-                      className={`h-1.5 rounded-full transition-all duration-500 ${
-                        currentSlide === i ? `w-6 bg-gradient-to-r ${slides[i].progressGradient}` : 'w-2 bg-white/20 hover:bg-white/40'
-                      }`}
-                      aria-label={`Go to slide ${i + 1}`}
-                    />
-                  ))}
-                </div>
-
-                {/* Circular Glass Arrow Buttons */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    onClick={prevSlide}
-                    aria-label="Previous Slide"
-                    className={`w-8 h-8 rounded-full bg-white/10 ${slide.arrowHoverBgColor} text-white border border-white/15 backdrop-blur-md flex items-center justify-center transition-all active:scale-95 hover:scale-105 shadow-sm`}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={nextSlide}
-                    aria-label="Next Slide"
-                    className={`w-8 h-8 rounded-full bg-white/10 ${slide.arrowHoverBgColor} text-white border border-white/15 backdrop-blur-md flex items-center justify-center transition-all active:scale-95 hover:scale-105 shadow-sm`}
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-
-              </div>
-
             </div>
-
-          </div>
+          </Link>
         ))}
+
+        {/* Layer 4: Mobile Step Progress Indicators (Just Dots, No Outline/Capsule) */}
+        <div 
+          className="absolute bottom-2 xs:bottom-2.5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-1.5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {slides.map((s, i) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setCurrentSlide(i);
+              }}
+              className={`h-1.5 rounded-full transition-all duration-300 drop-shadow-sm ${
+                currentSlide === i 
+                  ? `w-5 xs:w-6 bg-gradient-to-r ${slides[i].progressGradient}` 
+                  : 'w-1.5 bg-white/40 hover:bg-white/70'
+              }`}
+              aria-label={`Go to slide ${i + 1}`}
+            />
+          ))}
+        </div>
 
       </div>
 
@@ -294,7 +298,7 @@ export default function HeroHospitalSlider({ hospitals = [] }: HeroHospitalSlide
       {/* ========================================================================= */}
       {/* DESKTOP / TABLET HERO CONTAINER (>= 768px): UNTOUCHED DESKTOP COMPOSITION */}
       {/* ========================================================================= */}
-      <div className="hidden md:block relative w-full aspect-[16/9] min-h-[520px] max-h-[620px] rounded-[24px] overflow-hidden shadow-[0_12px_40px_rgba(5,20,40,0.12)] border border-white/15 bg-nuvicaNavy-950 group">
+      <div className="hidden md:block relative w-full aspect-[16/9] min-h-[520px] max-h-[620px] rounded-[24px] overflow-hidden shadow-[0_12px_40px_rgba(5,20,40,0.12)] border-0 outline-none ring-0 bg-nuvicaNavy-950 group">
         
         {/* LAYER 1: FULL-BLEED BACKGROUND PHOTOGRAPHS WITH PURE SMOOTH FADE */}
         {slides.map((slide, idx) => (

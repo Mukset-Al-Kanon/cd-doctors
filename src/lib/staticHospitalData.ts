@@ -12,6 +12,15 @@ export const FALLBACK_HOSPITALS = [
     email: 'info.chuadanga@evercarebd.com',
     description: 'Evercare Hospital Chuadanga is a 470-bed multi-disciplinary super-specialty tertiary care hospital in Chuadanga featuring state-of-the-art emergency care, 24/7 ICU support, and advanced surgery.',
     coverUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80',
+    district: {
+      nameEn: 'Chuadanga',
+      nameBn: 'চুয়াডাঙ্গা',
+      slug: 'chuadanga',
+      division: {
+        nameEn: 'Khulna',
+        nameBn: 'খুলনা',
+      },
+    },
     facilities: [
       { id: 'f-1', facilityName: '24/7 Emergency & Trauma' },
       { id: 'f-2', facilityName: 'ICU & CCU' },
@@ -32,6 +41,15 @@ export const FALLBACK_HOSPITALS = [
     email: 'sadar.chuadanga@dghs.gov.bd',
     description: 'The premier public healthcare institution in Chuadanga District providing comprehensive 24/7 emergency medical, inpatient, outpatient, and maternal healthcare services.',
     coverUrl: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&auto=format&fit=crop&q=80',
+    district: {
+      nameEn: 'Chuadanga',
+      nameBn: 'চুয়াডাঙ্গা',
+      slug: 'chuadanga',
+      division: {
+        nameEn: 'Khulna',
+        nameBn: 'খুলনা',
+      },
+    },
     facilities: [
       { id: 'f-4', facilityName: '24/7 Emergency Ward' },
       { id: 'f-5', facilityName: 'Government Blood Bank' },
@@ -52,6 +70,15 @@ export const FALLBACK_HOSPITALS = [
     email: 'chuadanga@populardiagnostic.com',
     description: 'Leading private diagnostic and specialist doctor consultation center in Chuadanga offering high-resolution MRI, CT Scan, 4D Ultrasonography, and automated pathology laboratory.',
     coverUrl: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&auto=format&fit=crop&q=80',
+    district: {
+      nameEn: 'Chuadanga',
+      nameBn: 'চুয়াডাঙ্গা',
+      slug: 'chuadanga',
+      division: {
+        nameEn: 'Khulna',
+        nameBn: 'খুলনা',
+      },
+    },
     facilities: [
       { id: 'f-7', facilityName: '1.5T MRI & 128-Slice CT' },
       { id: 'f-8', facilityName: 'Specialist Chambers' },
@@ -72,6 +99,15 @@ export const FALLBACK_HOSPITALS = [
     email: 'info@alamdangahealthcare.com',
     description: 'Alamdanga Health Care Clinic is a modern private healthcare facility serving Alamdanga and surrounding areas with 24/7 emergency care, specialist outpatient consultations, and modern lab testing.',
     coverUrl: 'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=800&auto=format&fit=crop&q=80',
+    district: {
+      nameEn: 'Chuadanga',
+      nameBn: 'চুয়াডাঙ্গা',
+      slug: 'chuadanga',
+      division: {
+        nameEn: 'Khulna',
+        nameBn: 'খুলনা',
+      },
+    },
     facilities: [
       { id: 'f-10', facilityName: '24/7 Emergency' },
       { id: 'f-11', facilityName: 'Digital X-Ray' },
@@ -92,6 +128,15 @@ export const FALLBACK_HOSPITALS = [
     email: 'impulse.chuadanga@gmail.com',
     description: 'A modern medical consultation center offering specialist doctor chambers, advanced day-care surgery, endoscopy, colonoscopy, and digital diagnostic facilities in Chuadanga.',
     coverUrl: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&auto=format&fit=crop&q=80',
+    district: {
+      nameEn: 'Chuadanga',
+      nameBn: 'চুয়াডাঙ্গা',
+      slug: 'chuadanga',
+      division: {
+        nameEn: 'Khulna',
+        nameBn: 'খুলনা',
+      },
+    },
     facilities: [
       { id: 'f-13', facilityName: 'Day-care Surgery' },
       { id: 'f-14', facilityName: 'Endoscopy Lab' },

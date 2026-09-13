@@ -14,13 +14,13 @@ import {
   AlertTriangle,
   Info,
   Calendar,
-  ShieldCheck,
-  Lock,
   LogIn,
   X,
-  Loader2
+  Loader2,
+  Lock
 } from 'lucide-react';
 import DonorRegistrationModal from '@/components/DonorRegistrationModal';
+import DistrictSelectDropdown from '@/components/DistrictSelectDropdown';
 import { FALLBACK_DONORS } from '@/lib/staticHospitalData';
 
 interface BloodDonor {
@@ -40,10 +40,17 @@ interface BloodDonor {
 const BLOOD_GROUPS = ['All', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const CHUADANGA_AREAS = ['All', 'Chuadanga Sadar', 'Alamdanga', 'Damurhuda', 'Jibannagar'];
 
+function toBanglaDigits(str: string | number | null | undefined): string {
+  if (str === null || str === undefined) return '';
+  const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  return String(str).replace(/[0-9]/g, (d) => bnDigits[parseInt(d, 10)]);
+}
+
 interface UserSessionInfo {
   name: string;
   email: string;
   phone?: string;
+  district?: string;
   isDonor?: boolean;
   donorStatus?: string;
   donorBloodGroup?: string;
@@ -54,6 +61,7 @@ export default function BloodDonorDirectoryPage() {
   const [donors, setDonors] = useState<BloodDonor[]>(FALLBACK_DONORS as any);
   const [loading, setLoading] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState('All');
+  const [selectedDistrict, setSelectedDistrict] = useState('সকল জেলা');
   const [selectedArea, setSelectedArea] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
@@ -66,6 +74,8 @@ export default function BloodDonorDirectoryPage() {
   const closeLoginRequiredModal = () => {
     if (isClosingLoginModal) return;
     setIsClosingLoginModal(true);
+    document.body.classList.remove('hide-nav-for-modal');
+    document.documentElement.classList.remove('hide-nav-for-modal');
     setTimeout(() => {
       setShowLoginRequiredModal(false);
       setIsClosingLoginModal(false);
@@ -95,11 +105,22 @@ export default function BloodDonorDirectoryPage() {
   };
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlDist = params.get('district');
+      if (urlDist) {
+        setSelectedDistrict(urlDist);
+      }
+    }
+
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
           setCurrentUser(data.user);
+          if (data.user.district) {
+            setSelectedDistrict(data.user.district);
+          }
           if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
             if (params.get('openDonorModal') === 'true' && !data.user.isDonor) {
@@ -111,18 +132,22 @@ export default function BloodDonorDirectoryPage() {
       .catch(() => setCurrentUser(null));
   }, []);
 
-  // Lock body scroll when modal is active so popup is fixed right in viewport center
+  // Lock body scroll and hide header/navbar when modal is active
   useEffect(() => {
-    if (showLoginRequiredModal) {
-      setIsClosingLoginModal(false);
+    if (showLoginRequiredModal || isRegisterModalOpen) {
+      if (showLoginRequiredModal) setIsClosingLoginModal(false);
       document.body.style.overflow = 'hidden';
-    } else if (isRegisterModalOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.classList.add('hide-nav-for-modal');
+      document.documentElement.classList.add('hide-nav-for-modal');
     } else {
       document.body.style.overflow = 'unset';
+      document.body.classList.remove('hide-nav-for-modal');
+      document.documentElement.classList.remove('hide-nav-for-modal');
     }
     return () => {
       document.body.style.overflow = 'unset';
+      document.body.classList.remove('hide-nav-for-modal');
+      document.documentElement.classList.remove('hide-nav-for-modal');
     };
   }, [showLoginRequiredModal, isRegisterModalOpen]);
 
@@ -147,17 +172,30 @@ export default function BloodDonorDirectoryPage() {
       setLoading(true);
       const params = new URLSearchParams();
       if (selectedGroup !== 'All') params.set('bloodGroup', selectedGroup);
+      if (selectedDistrict && selectedDistrict !== 'সকল জেলা') params.set('district', selectedDistrict);
       if (selectedArea !== 'All') params.set('area', selectedArea);
       if (searchQuery.trim() !== '') params.set('q', searchQuery.trim());
 
       const res = await fetch(`/api/blood?${params.toString()}`);
       const data = await res.json();
       if (data.success && data.donors && data.donors.length > 0) {
-        setDonors(data.donors);
+        const sorted = [...data.donors].sort((a, b) => {
+          if (a.availability === b.availability) return 0;
+          return a.availability === 'available' ? -1 : 1;
+        });
+        setDonors(sorted);
       } else {
         // Fallback filtering on client
         const filtered = FALLBACK_DONORS.filter((donor) => {
           if (selectedGroup !== 'All' && donor.bloodGroup !== selectedGroup) return false;
+          if (selectedDistrict && selectedDistrict !== 'সকল জেলা' && selectedDistrict !== 'All') {
+            const dLow = selectedDistrict.toLowerCase().replace(' জেলা', '').trim();
+            const matchDist = 
+              donor.address.toLowerCase().includes(dLow) || 
+              donor.area.toLowerCase().includes(dLow) ||
+              (dLow === 'চুয়াডাঙ্গা' && (donor.address.toLowerCase().includes('chuadanga') || donor.area.toLowerCase().includes('chuadanga')));
+            if (!matchDist) return false;
+          }
           if (selectedArea !== 'All' && donor.area !== selectedArea) return false;
           if (searchQuery.trim() !== '') {
             const term = searchQuery.trim().toLowerCase();
@@ -169,7 +207,11 @@ export default function BloodDonorDirectoryPage() {
           }
           return true;
         });
-        setDonors(filtered as any);
+        const sortedFallback = [...filtered].sort((a, b) => {
+          if (a.availability === b.availability) return 0;
+          return a.availability === 'available' ? -1 : 1;
+        });
+        setDonors(sortedFallback as any);
       }
     } catch (err) {
       console.error('Failed to fetch blood donors:', err);
@@ -180,7 +222,7 @@ export default function BloodDonorDirectoryPage() {
 
   useEffect(() => {
     fetchDonors();
-  }, [selectedGroup, selectedArea]);
+  }, [selectedGroup, selectedDistrict, selectedArea]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,6 +231,7 @@ export default function BloodDonorDirectoryPage() {
 
   const handleResetFilters = () => {
     setSelectedGroup('All');
+    setSelectedDistrict(currentUser?.district || 'সকল জেলা');
     setSelectedArea('All');
     setSearchQuery('');
   };
@@ -201,7 +244,7 @@ export default function BloodDonorDirectoryPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+    <div className="min-h-screen bg-[#F4F5F7] max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-2.5 pb-8 sm:py-8 space-y-8 sm:space-y-10">
       {/* 1. HERO SECTION */}
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-nuvicaNavy-950 via-slate-900 to-rose-950 text-white p-6 sm:p-10 border border-white/15 shadow-2xl">
         {/* Glow Effects & Decorative Watermarks */}
@@ -216,7 +259,7 @@ export default function BloodDonorDirectoryPage() {
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight sm:leading-none">
             Find a Blood Donor in{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-rose-300 to-amber-200">
-              Chuadanga
+              {selectedDistrict && selectedDistrict !== 'সকল জেলা' ? selectedDistrict : 'Bangladesh'}
             </span>
           </h1>
 
@@ -340,7 +383,7 @@ export default function BloodDonorDirectoryPage() {
         {/* Blood Group Quick Pills */}
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-            <Droplet className="w-3.5 h-3.5 text-rose-600 fill-rose-600" /> Select Blood Group:
+            <Droplet className="w-3.5 h-3.5 text-rose-600 fill-rose-600" /> রক্তের গ্রুপ নির্বাচন করুন:
           </label>
           <div className="flex flex-wrap gap-2">
             {BLOOD_GROUPS.map((bg) => {
@@ -355,10 +398,57 @@ export default function BloodDonorDirectoryPage() {
                       : 'bg-white text-slate-700 border border-slate-200 hover:border-rose-300 hover:bg-rose-50/70 hover:shadow-md hover:shadow-rose-500/10 hover:-translate-y-0.5 hover:scale-105'
                   }`}
                 >
-                  {bg === 'All' ? 'All Blood Groups' : bg}
+                  {bg === 'All' ? 'সকল রক্তের গ্রুপ' : bg}
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* District & Location Search Controls */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
+          {/* District Selector (Auto-selected from user profile) */}
+          <div className="md:col-span-1">
+            <DistrictSelectDropdown
+              value={selectedDistrict}
+              onChange={(dist) => setSelectedDistrict(dist)}
+              label="রক্তদাতার জেলা"
+            />
+          </div>
+
+          {/* Search Box */}
+          <div className="md:col-span-2 space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+              <span>রক্তদাতা বা এলাকা খুঁজুন</span>
+              {(searchQuery || selectedGroup !== 'All') && (
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="text-[11px] text-rose-600 font-bold hover:underline"
+                >
+                  ফিল্টার রিসেট
+                </button>
+              )}
+            </label>
+            <div className="relative flex items-center rounded-2xl bg-white border border-slate-200 px-3.5 py-2.5 sm:py-3 focus-within:border-rose-500 focus-within:ring-4 focus-within:ring-rose-500/10 shadow-2xs transition-all">
+              <Search className="w-4 h-4 text-slate-400 mr-2.5 shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="রক্তদাতার নাম, এলাকা বা ঠিকানা দিয়ে খুঁজুন..."
+                className="w-full bg-transparent text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="p-1 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -371,11 +461,11 @@ export default function BloodDonorDirectoryPage() {
             <span className="w-3 h-3 rounded-full bg-rose-600"></span>
             <h2 className="text-xl font-black text-nuvicaNavy-900">
               {loading ? (
-                'Searching Chuadanga Donors...'
+                `${selectedDistrict && selectedDistrict !== 'সকল জেলা' ? selectedDistrict : 'বাংলাদেশ'}র রক্তদাতা খোঁজা হচ্ছে...`
               ) : (
                 <>
-                  {donors.length} {selectedGroup !== 'All' ? selectedGroup : ''} Blood Donors Found
-                  {selectedArea !== 'All' ? ` in ${selectedArea}` : ' in Chuadanga'}
+                  <span className="font-black text-rose-600">{toBanglaDigits(donors.length)} জন</span> {selectedGroup !== 'All' ? `${selectedGroup} গ্রুপের ` : ''}রক্তদাতা পাওয়া গেছে
+                  {selectedDistrict && selectedDistrict !== 'সকল জেলা' ? ` (${selectedDistrict})` : ' (সমগ্র বাংলাদেশ)'}
                 </>
               )}
             </h2>
@@ -400,20 +490,20 @@ export default function BloodDonorDirectoryPage() {
             </div>
             <div className="space-y-1">
               <h3 className="text-lg font-black text-nuvicaNavy-900">
-                No approved blood donors found
+                কোনো অনুমোদিত রক্তদাতা পাওয়া যায়নি
               </h3>
               <p className="text-xs text-slate-500 font-medium">
-                No approved donors are currently listed for blood group{' '}
-                <strong className="text-rose-600">{selectedGroup !== 'All' ? selectedGroup : 'any'}</strong>{' '}
-                {selectedArea !== 'All' ? `in ${selectedArea}` : 'in Chuadanga'}.
+                {selectedGroup !== 'All' ? `${selectedGroup} রক্তের গ্রুপের ` : ''}
+                {selectedDistrict && selectedDistrict !== 'সকল জেলা' ? `${selectedDistrict} জেলায় ` : ''}
+                বর্তমানে কোনো রক্তদাতার তথ্য তালিকাভুক্ত নেই।
               </p>
             </div>
             <div className="pt-2 flex items-center justify-center gap-3">
               <button
                 onClick={handleResetFilters}
-                className="px-4 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+                className="px-4 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
               >
-                Reset Filters
+                ফিল্টার রিসেট
               </button>
               {!currentUser?.isDonor && (
                 <button
@@ -422,7 +512,7 @@ export default function BloodDonorDirectoryPage() {
                 >
                   <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-1000 ease-in-out pointer-events-none" />
                   <UserPlus className="relative z-10 w-3.5 h-3.5 text-white group-hover/btn:rotate-12 group-hover/btn:scale-110 transition-transform duration-300 shrink-0" />
-                  <span className="relative z-10">Register as a Donor</span>
+                  <span className="relative z-10">রক্তদাতা নিবন্ধন করুন</span>
                 </button>
               )}
             </div>
@@ -474,33 +564,13 @@ export default function BloodDonorDirectoryPage() {
                     </div>
 
                     {/* Donor Details Card Box */}
-                    <div className="bg-sky-50/60 p-3.5 rounded-2xl border border-sky-100/80 text-xs text-slate-700 space-y-2">
+                    <div className="bg-sky-50/60 p-3.5 rounded-2xl border border-sky-100/80 text-xs text-slate-700">
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-rose-600 shrink-0" />
                         <div>
                           <strong className="text-nuvicaNavy-900">{donor.area}</strong>
                           <span className="text-slate-500"> ({donor.address})</span>
                         </div>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Phone className={`w-4 h-4 shrink-0 ${currentUser ? 'text-sky-700' : 'text-slate-400'}`} />
-                          <span className={`font-bold truncate ${currentUser ? 'text-nuvicaNavy-900' : 'text-slate-500 tracking-wider select-none'}`}>
-                            {currentUser ? donor.phone : '017•••••XXX'}
-                          </span>
-                        </div>
-
-                        {!currentUser && (
-                          <button
-                            type="button"
-                            onClick={handleCallLockClick}
-                            className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 hover:text-sky-800 bg-sky-100/90 hover:bg-sky-200/90 px-2 py-0.5 rounded-lg border border-sky-200/80 transition-colors shrink-0 cursor-pointer"
-                          >
-                            <Lock className="w-3 h-3 text-sky-600" />
-                            লগইন
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -558,14 +628,17 @@ export default function BloodDonorDirectoryPage() {
       {showLoginRequiredModal && (
         <div 
           onClick={closeLoginRequiredModal}
-          className={`fixed inset-0 z-[99999] w-screen h-screen flex items-center justify-center p-4 bg-slate-950/75 ${
+          data-modal="true"
+          role="dialog"
+          aria-modal="true"
+          className={`fixed inset-0 z-[99999] w-full h-full flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] font-bengali overflow-hidden ${
             isClosingLoginModal ? 'animate-backdrop-out' : 'animate-backdrop-in'
           }`}
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className={`bg-white rounded-3xl p-5 sm:p-8 max-w-[340px] xs:max-w-sm sm:max-w-md w-full space-y-4 sm:space-y-5 shadow-2xl border border-slate-100 text-center relative max-h-[88vh] overflow-y-auto shrink-0 transform ${
+            className={`bg-white rounded-3xl p-5 sm:p-8 max-w-[340px] xs:max-w-sm sm:max-w-md w-full space-y-4 sm:space-y-5 shadow-2xl border border-slate-200/80 text-center relative max-h-[85vh] overflow-y-auto shrink-0 my-auto transform ${
               isClosingLoginModal
                 ? 'animate-modal-spring-out'
                 : 'animate-modal-spring-in'
@@ -633,7 +706,16 @@ export default function BloodDonorDirectoryPage() {
       <DonorRegistrationModal
         isOpen={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
-        currentUser={currentUser}
+        currentUser={
+          currentUser
+            ? {
+                ...currentUser,
+                district: currentUser.district || selectedDistrict || 'চুয়াডাঙ্গা',
+              }
+            : selectedDistrict
+            ? { name: '', email: '', phone: '', district: selectedDistrict }
+            : null
+        }
         onSuccess={() => {
           fetchDonors();
         }}

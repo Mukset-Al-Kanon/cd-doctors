@@ -40,7 +40,9 @@ module.exports = {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'Outfit', 'sans-serif'],
+        sans: ['"Shurjo"', '"Hind Siliguri"', '"Noto Sans Bengali"', '"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+        bengali: ['"Shurjo"', '"Hind Siliguri"', '"Noto Sans Bengali"', 'system-ui', 'sans-serif'],
+        heading: ['"Shurjo"', '"Hind Siliguri"', '"Noto Sans Bengali"', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         'nuvica': '0 20px 50px -12px rgba(15, 43, 92, 0.12)',

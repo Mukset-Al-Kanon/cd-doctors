@@ -1,5 +1,6 @@
 import React from 'react';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/auth';
 import HospitalsClientView from './HospitalsClientView';
 import { FALLBACK_HOSPITALS } from '@/lib/staticHospitalData';
 
@@ -17,7 +18,10 @@ interface PageProps {
 export default async function HospitalsPage({ searchParams }: PageProps) {
   const query = searchParams?.q || '';
   const typeFilter = searchParams?.type || 'all';
-  const districtSlug = searchParams?.district || 'chuadanga';
+  const paramDistrict = searchParams?.district;
+
+  const session = await getSession().catch(() => null);
+  const userDistrict = paramDistrict || session?.district || null;
 
   let hospitals: any[] = FALLBACK_HOSPITALS;
 
@@ -25,7 +29,6 @@ export default async function HospitalsPage({ searchParams }: PageProps) {
     const dbHospitals = await db.hospital.findMany({
       where: {
         status: { in: ['ACTIVE', 'APPROVED'] },
-        district: { slug: districtSlug },
       },
       include: {
         district: { include: { division: true } },
@@ -47,6 +50,7 @@ export default async function HospitalsPage({ searchParams }: PageProps) {
       initialHospitals={hospitals}
       initialQuery={query}
       initialType={typeFilter}
+      initialUserDistrict={userDistrict}
     />
   );
 }

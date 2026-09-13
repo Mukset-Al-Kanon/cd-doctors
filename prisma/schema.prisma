@@ -20,6 +20,7 @@ model User {
   phoneVerified Boolean     @default(false)
   passwordHash  String
   role          String      @default("PATIENT")
+  district      String?     @default("চুয়াডাঙ্গা")
   hospitalId    String?
   hospital      Hospital?   @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
   createdAt     DateTime    @default(now())
@@ -171,10 +172,14 @@ model Doctor {
   email              String?          @unique
   passwordHash       String?
   walletBalance      Int              @default(0)      // Current digital wallet balance in BDT
-  activePackageName  String?                           // "STARTER" | "GROWTH" | "VIP_PRO"
+  activePackageName  String?                           // "MONTH_1" | "MONTH_3" | "MONTH_6" | "MONTH_12" or legacy "STARTER" | "GROWTH" | "VIP_PRO"
   packageExpiresAt   DateTime?
+  subscriptionTier   String?                           // "MONTH_1" | "MONTH_3" | "MONTH_6" | "MONTH_12"
+  subscriptionExpiresAt DateTime?
   remainingPosts     Int              @default(0)
   remainingBoostDays Int              @default(0)
+  isTelemedicineAvailable Boolean      @default(true)
+  telemedicineFee    Int?             @default(500)
   
   status             String           @default("ACTIVE")
   createdAt          DateTime         @default(now())
@@ -185,6 +190,28 @@ model Doctor {
   socialPosts        SocialPostLog[]
   walletTransactions WalletTransaction[]
   campaigns          DoctorCampaign[]
+  withdrawalRequests WithdrawalRequest[]
+  prescriptions      Prescription[]
+  prescriptionTemplates PrescriptionTemplate[]
+}
+
+model WithdrawalRequest {
+  id             String    @id @default(uuid())
+  doctorId       String
+  doctor         Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  amount         Int       // Amount in BDT
+  method         String    // "BKASH" | "NAGAD" | "BANK"
+  accountNumber  String
+  accountName    String?
+  bankName       String?
+  branchName     String?
+  status         String    @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
+  adminNote      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([doctorId])
+  @@index([status])
 }
 
 model WalletTransaction {
@@ -193,7 +220,7 @@ model WalletTransaction {
   doctor         Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   amount         Int       // Amount in BDT (positive for credit, negative for debit)
   type           String    // "CREDIT" | "DEBIT"
-  method         String    // "BKASH" | "NAGAD" | "PACKAGE_PURCHASE" | "SANDBOX_TEST"
+  method         String    // "BKASH" | "NAGAD" | "PACKAGE_PURCHASE" | "BOOST_PURCHASE" | "TELEMEDICINE_EARNING" | "WITHDRAWAL" | "SANDBOX_TEST"
   trxId          String?
   senderPhone    String?
   notes          String?
@@ -208,10 +235,11 @@ model DoctorCampaign {
   id             String    @id @default(uuid())
   doctorId       String
   doctor         Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  packageName    String    // "STARTER" | "GROWTH" | "VIP_PRO"
+  packageName    String    // "LOCAL_CHAMBER" | "NATIONWIDE_TELEMEDICINE" | "STARTER" | "GROWTH" | "VIP_PRO"
   priceBdt       Int
   totalPosts     Int       @default(1)
   boostDays      Int       @default(1)
+  targetType     String    @default("LOCAL") // "LOCAL" | "NATIONWIDE"
   scheduledDate  DateTime?
   posterUrl      String?
   impressions    Int       @default(0)
@@ -240,32 +268,53 @@ model DoctorSchedule {
   id                  String   @id @default(uuid())
   doctorId            String
   doctor              Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  chamberName         String?  // e.g. "ইমপ্যাক্ট হাসপাতাল" or "নিজস্ব চেম্বার"
+  chamberAddress      String?
+  division            String?  // e.g. "খুলনা"
+  district            String?  // e.g. "চুয়াডাঙ্গা"
   dayOfWeek           Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   startTime           String   // HH:MM e.g. "17:00"
   endTime             String   // HH:MM e.g. "20:00"
+  consultationFee     Int?
   slotDurationMinutes Int      @default(20)
   maxPatients         Int      @default(10)
+  isTelemedicine      Boolean  @default(false)
 }
 
 model Appointment {
-  id              String   @id @default(uuid())
-  appointmentCode String   @unique // e.g. APT-20260801-98213
-  hospitalId      String
-  hospital        Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  id              String    @id @default(uuid())
+  appointmentCode String    @unique // e.g. APT-20260801-98213
+  serialNumber    Int?      // Daily sequential serial: 1, 2, 3...
+  hospitalId      String?
+  hospital        Hospital? @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
   doctorId        String
-  doctor          Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  doctor          Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   patientName     String
   patientPhone    String
   patientAge      Int
   patientGender   String
   patientEmail    String?
   visitReason     String?
-  appointmentDate String   // YYYY-MM-DD
-  timeSlot        String   // e.g. "17:00"
-  status          String   @default("PENDING")
-  createdAt       DateTime @default(now())
+  appointmentDate String    // YYYY-MM-DD
+  timeSlot        String    // e.g. "17:00"
+  estimatedTime   String?   // Calculated estimated time e.g. "05:20 PM"
+  chamberName     String?   // Chamber or hospital name
+  scheduleId      String?
+  isWalkIn        Boolean   @default(false)
+  status          String    @default("CONFIRMED") // PENDING, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW
+  queueStatus     String    @default("WAITING")   // WAITING, CALLING, IN_CONSULTATION, COMPLETED, SKIPPED, CANCELLED
+  calledAt        DateTime?
+  completedAt     DateTime?
+  isTelemedicine      Boolean   @default(false)
+  telemedicineRoomId  String?   // Unique WebRTC consultation room e.g. "cddoc-apt-XXXXX"
+  telemedicineFee     Int?
+  paymentStatus       String    @default("PENDING") // PENDING, PAID
+  prescription    Prescription?
+  createdAt       DateTime  @default(now())
 
-  @@unique([doctorId, appointmentDate, timeSlot])
+  @@index([doctorId, appointmentDate])
+  @@index([patientPhone])
+  @@index([queueStatus])
 }
 
 model SubscriptionPlan {
@@ -343,4 +392,125 @@ model BloodDonor {
   updatedAt        DateTime  @updatedAt
   approvedAt       DateTime?
 }
+
+model PrescriptionVaultItem {
+  id                String                    @id @default(uuid())
+  userId            String?
+  patientName       String
+  doctorName        String?
+  hospitalName      String?
+  consultationDate  String?                   // YYYY-MM-DD
+  diagnosis         String?
+  imageUrl          String?
+  medicinesJson     String?                   // JSON stringified array of medicines
+  notes             String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  schedules         MedicineReminderSchedule[]
+}
+
+model MedicineReminderSchedule {
+  id                 String                 @id @default(uuid())
+  userId             String?
+  prescriptionId     String?
+  prescription       PrescriptionVaultItem? @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medicineName       String
+  genericName        String?
+  dosage             String                 // e.g. "1+0+1", "1+1+1", "1 tablet"
+  timing             String                 // "AFTER_MEAL", "BEFORE_MEAL", "WITH_MEAL", "EMPTY_STOMACH"
+  scheduledTimesJson String                 // e.g. '["08:30", "20:30"]'
+  durationDays       Int                    @default(7)
+  startDate          String                 // YYYY-MM-DD
+  endDate            String?                // YYYY-MM-DD
+  instructions       String?
+  isActive           Boolean                @default(true)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  logs               MedicineDoseLog[]
+}
+
+model MedicineDoseLog {
+  id            String                   @id @default(uuid())
+  scheduleId    String
+  schedule      MedicineReminderSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  date          String                   // YYYY-MM-DD
+  scheduledTime String                   // "08:30"
+  takenAt       DateTime                 @default(now())
+  status        String                   @default("TAKEN") // TAKEN, SKIPPED
+  notes         String?
+}
+
+model HealthVaultReport {
+  id               String   @id @default(uuid())
+  userId           String?
+  patientName      String
+  testName         String
+  diagnosticCenter String?
+  reportDate       String   // YYYY-MM-DD
+  fileUrl          String
+  fileType         String   @default("image") // image, pdf
+  category         String   @default("OTHER") // BLOOD, RADIOLOGY, PATHOLOGY, CARDIOLOGY, DIABETES, OTHER
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model DailyHealthTip {
+  id          String   @id @default(uuid())
+  title       String
+  tipBn       String
+  category    String   @default("GENERAL") // HYDRATION, NUTRITION, EXERCISE, SEASONAL, MENTAL_HEALTH
+  icon        String   @default("Heart")
+  publishedAt String?  // YYYY-MM-DD
+  createdAt   DateTime @default(now())
+}
+
+model Prescription {
+  id                String    @id @default(uuid())
+  prescriptionCode  String    @unique // e.g. RX-20260831-4821
+  doctorId          String
+  doctor            Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  appointmentId     String?   @unique
+  appointment       Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  patientName       String
+  patientPhone      String
+  patientAge        Int?
+  patientGender     String?
+  patientWeight     String?
+  bp                String?
+  pulse             String?
+  temperature       String?
+  bloodSugar        String?
+  chiefComplaints   String?   // JSON or text list of complaints
+  clinicalFindings  String?   // O/E details
+  diagnosis         String?   // Diagnosis / Prov. Diagnosis
+  investigations    String?   // JSON list of lab tests
+  medicinesJson     String    // JSON array of prescribed medicines
+  advice            String?
+  nextVisit         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([doctorId])
+  @@index([patientPhone])
+  @@index([createdAt])
+}
+
+model PrescriptionTemplate {
+  id          String   @id @default(uuid())
+  doctorId    String
+  doctor      Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  title       String   // e.g. "Viral Fever & Cold"
+  specialty   String?
+  complaints  String?
+  diagnosis   String?
+  tests       String?
+  medicines   String   // JSON array of medicines
+  advice      String?
+  createdAt   DateTime @default(now())
+
+  @@index([doctorId])
+}
+
+
 

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { User, X, Check, Loader2, Mail, Phone, Shield, LogOut } from 'lucide-react';
+import { User, X, Check, Loader2, Mail, Phone, Shield, LogOut, MapPin } from 'lucide-react';
+import DistrictSelectDropdown from './DistrictSelectDropdown';
 
 interface ProfileEditModalProps {
   user: {
@@ -9,10 +10,11 @@ interface ProfileEditModalProps {
     email: string;
     phone?: string | null;
     role: string;
+    district?: string | null;
   };
   isOpen: boolean;
   onClose: () => void;
-  onProfileUpdated: (updatedData: { name: string; email: string; phone?: string }) => void;
+  onProfileUpdated: (updatedData: { name: string; email: string; phone?: string; district?: string }) => void;
   onLogout: () => void;
 }
 
@@ -26,6 +28,7 @@ export default function ProfileEditModal({
   const [name, setName] = useState(user.name || '');
   const [email, setEmail] = useState(user.email || '');
   const [phone, setPhone] = useState(user.phone || '');
+  const [district, setDistrict] = useState(user.district || 'চুয়াডাঙ্গা');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -52,7 +55,7 @@ export default function ProfileEditModal({
       const res = await fetch('/api/auth/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone }),
+        body: JSON.stringify({ name, email, phone, district }),
       });
 
       const data = await res.json();
@@ -62,7 +65,7 @@ export default function ProfileEditModal({
       }
 
       setSuccess(true);
-      onProfileUpdated({ name, email, phone });
+      onProfileUpdated({ name, email, phone, district });
       setTimeout(() => {
         setSuccess(false);
         handleSmoothClose();
@@ -165,6 +168,13 @@ export default function ProfileEditModal({
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500"
             />
           </div>
+
+          {/* District / Location */}
+          <DistrictSelectDropdown
+            value={district}
+            onChange={setDistrict}
+            label="জেলা / লোকেশন"
+          />
 
           {/* User Role Badge */}
           <div className="pt-1 flex items-center justify-between bg-sky-50/60 p-3 rounded-2xl border border-sky-100/80">

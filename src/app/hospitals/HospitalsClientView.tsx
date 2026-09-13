@@ -28,6 +28,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import LoginPromptModal from '@/components/LoginPromptModal';
+import CustomLocationSelector, { BD_DIVISIONS_MAP, getDivisionByDistrict } from '@/components/CustomLocationSelector';
 
 export interface HospitalItem {
   id: string;
@@ -69,6 +70,7 @@ interface HospitalsClientViewProps {
   initialHospitals: HospitalItem[];
   initialQuery?: string;
   initialType?: string;
+  initialUserDistrict?: string | null;
 }
 
 const UPAZILAS = [
@@ -89,14 +91,26 @@ const POPULAR_FACILITIES = [
   'Oxygen Plant',
 ];
 
+function toBanglaDigits(str: string | number): string {
+  const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  return String(str).replace(/[0-9]/g, (d) => bnDigits[parseInt(d, 10)]);
+}
+
 export default function HospitalsClientView({
   initialHospitals,
   initialQuery = '',
   initialType = 'all',
+  initialUserDistrict = null,
 }: HospitalsClientViewProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [typeFilter, setTypeFilter] = useState(initialType);
+  const [selectedDivision, setSelectedDivision] = useState(
+    initialUserDistrict ? getDivisionByDistrict(initialUserDistrict) : 'সকল বিভাগ'
+  );
+  const [selectedDistrict, setSelectedDistrict] = useState(
+    initialUserDistrict || 'সকল জেলা'
+  );
   const [areaFilter, setAreaFilter] = useState<string>('all');
   const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'featured' | 'doctors' | 'name' | 'type'>('featured');
@@ -117,11 +131,18 @@ export default function HospitalsClientView({
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
-        if (data.user) setIsLoggedIn(true);
-        else setIsLoggedIn(false);
+        if (data.user) {
+          setIsLoggedIn(true);
+          if (!initialUserDistrict && data.user.district) {
+            setSelectedDistrict(data.user.district);
+            setSelectedDivision(getDivisionByDistrict(data.user.district));
+          }
+        } else {
+          setIsLoggedIn(false);
+        }
       })
       .catch(() => setIsLoggedIn(false));
-  }, []);
+  }, [initialUserDistrict]);
 
   // Manual router refresh call
   const handleRefresh = () => {
@@ -145,6 +166,8 @@ export default function HospitalsClientView({
   const resetFilters = () => {
     setSearchQuery('');
     setTypeFilter('all');
+    setSelectedDivision('সকল বিভাগ');
+    setSelectedDistrict('সকল জেলা');
     setAreaFilter('all');
     setSelectedFacilities([]);
     setSortBy('featured');
@@ -154,28 +177,64 @@ export default function HospitalsClientView({
   const filteredHospitals = useMemo(() => {
     return initialHospitals
       .filter((hospital) => {
-        // Search text matching
+        // Query search
         if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase();
-          const matchName = hospital.name.toLowerCase().includes(q);
-          const matchDesc = hospital.description.toLowerCase().includes(q);
-          const matchAddr = hospital.address.toLowerCase().includes(q);
-          const matchFacility = hospital.facilities.some((f) =>
-            f.facilityName.toLowerCase().includes(q)
-          );
-          if (!matchName && !matchDesc && !matchAddr && !matchFacility) {
-            return false;
-          }
+          const q = searchQuery.toLowerCase().trim();
+          const name = hospital.name?.toLowerCase() || '';
+          const address = hospital.address?.toLowerCase() || '';
+          const desc = hospital.description?.toLowerCase() || '';
+          const matchName = name.includes(q);
+          const matchAddress = address.includes(q);
+          const matchDesc = desc.includes(q);
+          if (!matchName && !matchAddress && !matchDesc) return false;
         }
 
-        // Type filter matching
-        if (typeFilter !== 'all' && hospital.hospitalType !== typeFilter) {
-          return false;
+        // Type filter
+        if (typeFilter !== 'all') {
+          if (hospital.hospitalType !== typeFilter) return false;
+        }
+
+        // Division match
+        if (selectedDivision !== 'সকল বিভাগ' && selectedDivision !== 'সব বিভাগ') {
+          const divEn = (hospital.district?.division?.nameEn || '').toLowerCase();
+          const divBn = (hospital.district?.division as any)?.nameBn || '';
+          const addr = (hospital.address || '').toLowerCase();
+          const DIVISION_KEYWORDS: Record<string, string[]> = {
+            'খুলনা': ['khulna', 'খুলনা', 'chuadanga', 'চুয়াডাঙ্গা', 'kushtia', 'কুষ্টিয়া'],
+            'ঢাকা': ['dhaka', 'ঢাকা', 'dacca'],
+            'চট্টগ্রাম': ['chattogram', 'chittagong', 'ctg', 'চট্টগ্রাম'],
+            'রাজশাহী': ['rajshahi', 'রাজশাহী'],
+            'বরিশাল': ['barishal', 'barisal', 'বরিশাল'],
+            'সিলেট': ['sylhet', 'সিলেট'],
+            'রংপুর': ['rangpur', 'রংপুর'],
+            'ময়মনসিংহ': ['mymensingh', 'ময়মনসিংহ'],
+          };
+          const keys = DIVISION_KEYWORDS[selectedDivision] || [selectedDivision.toLowerCase()];
+          const matchDiv = keys.some((k) => divEn.includes(k) || divBn.includes(k) || addr.includes(k));
+          if (!matchDiv) return false;
+        }
+
+        // District match
+        if (selectedDistrict !== 'সকল জেলা' && selectedDistrict !== 'সব জেলা' && selectedDistrict !== 'সব শহর') {
+          const cleanDist = selectedDistrict.replace(' জেলা', '').trim();
+          const distEn = (hospital.district?.nameEn || '').toLowerCase();
+          const distBn = hospital.district?.nameBn || '';
+          const addr = (hospital.address || '').toLowerCase();
+          const name = (hospital.name || '').toLowerCase();
+          
+          const matchDist = 
+            distBn.includes(cleanDist) ||
+            addr.includes(cleanDist.toLowerCase()) ||
+            name.includes(cleanDist.toLowerCase()) ||
+            distEn.includes(cleanDist.toLowerCase()) ||
+            (cleanDist === 'চুয়াডাঙ্গা' && (distEn.includes('chuadanga') || addr.includes('chuadanga') || name.includes('chuadanga')));
+
+          if (!matchDist) return false;
         }
 
         // Area filter matching
         if (areaFilter !== 'all') {
-          const addr = hospital.address.toLowerCase();
+          const addr = hospital.address?.toLowerCase() || '';
           if (!addr.includes(areaFilter.toLowerCase())) {
             return false;
           }
@@ -183,14 +242,14 @@ export default function HospitalsClientView({
 
         // Selected facilities matching
         if (selectedFacilities.length > 0) {
-          const hospitalFacilityNames = hospital.facilities.map((f) =>
+          const hospitalFacilityNames = hospital.facilities?.map((f) =>
             f.facilityName.toLowerCase()
-          );
+          ) || [];
           const hasAllFacilities = selectedFacilities.every((fac) => {
             const facLower = fac.toLowerCase();
             return (
               hospitalFacilityNames.some((hFac) => hFac.includes(facLower)) ||
-              hospital.description.toLowerCase().includes(facLower)
+              hospital.description?.toLowerCase().includes(facLower)
             );
           });
           if (!hasAllFacilities) return false;
@@ -216,7 +275,7 @@ export default function HospitalsClientView({
         }
         return 0;
       });
-  }, [initialHospitals, searchQuery, typeFilter, areaFilter, selectedFacilities, sortBy]);
+  }, [initialHospitals, searchQuery, typeFilter, selectedDivision, selectedDistrict, areaFilter, selectedFacilities, sortBy]);
 
   // Aggregate stats
   const totalDoctorsCount = useMemo(() => {
@@ -230,38 +289,60 @@ export default function HospitalsClientView({
   const activeFilterCount =
     (searchQuery ? 1 : 0) +
     (typeFilter !== 'all' ? 1 : 0) +
+    (selectedDivision !== 'সকল বিভাগ' ? 1 : 0) +
+    (selectedDistrict !== 'সকল জেলা' ? 1 : 0) +
     (areaFilter !== 'all' ? 1 : 0) +
     selectedFacilities.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50/70 via-sky-50/30 to-slate-50/60 py-8 sm:py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        {/* Compact & Professional Search & Category Header Card */}
-        <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5">
-          {/* Live Search Input */}
-          <div className="relative flex items-center bg-slate-50 hover:bg-slate-100/80 focus-within:bg-white border border-slate-200 focus-within:border-sky-500 rounded-2xl p-1 transition-all">
-            <Search className="w-4 h-4 text-slate-400 ml-3 shrink-0" />
+    <div className="min-h-screen bg-[#F4F5F7] pt-2.5 pb-6 sm:py-10">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
+        
+        {/* SEO Heading (Screen reader accessible) */}
+        <h1 className="sr-only">
+          {selectedDistrict !== 'সকল জেলা' ? `${selectedDistrict} জেলার` : selectedDivision !== 'সকল বিভাগ' ? `${selectedDivision} বিভাগের` : 'বাংলাদেশ ও চুয়াডাঙ্গার'} হাসপাতাল ও ক্লিনিক তালিকা
+        </h1>
+
+        {/* ========================================================================= */}
+        {/* 🌟 2. SEARCH & CATEGORY FILTER CARD */}
+        {/* ========================================================================= */}
+        <div className="bg-white border border-slate-200/80 rounded-[28px] p-4 sm:p-6 shadow-xs space-y-4">
+          
+          {/* Live Search Input Box */}
+          <div className="relative flex items-center bg-[#F8FAFC] border border-slate-200/90 rounded-2xl px-3.5 sm:px-4 py-2.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all shadow-2xs">
+            <Search className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 mr-2 sm:mr-2.5 shrink-0" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="হাসপাতালের নাম বা ঠিকানা লিখে খুঁজুন..."
-              className="w-full bg-transparent px-2.5 py-1.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none font-semibold"
+              className="w-full bg-transparent text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none font-medium py-1"
             />
             {searchQuery && (
               <button
+                type="button"
                 onClick={() => setSearchQuery('')}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition mr-2"
+                className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer mr-0.5 shrink-0"
+                title="ক্লিয়ার করুন"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
+          {/* Custom Modern Division & District Popover Filter */}
+          <CustomLocationSelector
+            selectedDivision={selectedDivision}
+            selectedDistrict={selectedDistrict}
+            onDivisionChange={setSelectedDivision}
+            onDistrictChange={setSelectedDistrict}
+            theme="light"
+          />
+
           {/* Category Type Tabs */}
-          <div className="flex flex-wrap items-center gap-2 pt-0.5">
-            <span className="text-xs font-extrabold text-slate-600 mr-1 flex items-center gap-1.5 shrink-0">
-              <Building2 className="w-4 h-4 text-sky-600 shrink-0" /> ক্যাটাগরি:
+          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
+            <span className="text-xs font-extrabold text-slate-500 mr-1 flex items-center gap-1.5 shrink-0">
+              <Building2 className="w-3.5 h-3.5 text-sky-600 shrink-0" /> ক্যাটাগরি:
             </span>
             {[
               { label: 'সকল হাসপাতাল', value: 'all' },
@@ -273,11 +354,12 @@ export default function HospitalsClientView({
               return (
                 <button
                   key={t.value}
+                  type="button"
                   onClick={() => setTypeFilter(t.value)}
                   className={`text-xs font-bold px-3.5 py-1.5 rounded-xl transition-all duration-200 cursor-pointer ${
                     isSelected
-                      ? 'bg-sky-500 text-white shadow-2xs border border-sky-600/30'
-                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/90'
+                      ? 'bg-sky-600 text-white shadow-xs border border-sky-600'
+                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/80'
                   }`}
                 >
                   {t.label}
@@ -288,14 +370,15 @@ export default function HospitalsClientView({
         </div>
 
         {/* Results Summary Counter & View Mode Toggle */}
-        <div className="flex items-center justify-between px-1 text-xs font-semibold text-slate-500">
+        <div className="flex items-center justify-between px-1 text-xs font-bold text-slate-500">
           <div>
-            Showing <strong className="text-nuvicaNavy-900 font-black">{filteredHospitals.length} active hospitals</strong> in Chuadanga
+            মোট প্রাপ্ত: <span className="text-sky-700 font-black">{toBanglaDigits(filteredHospitals.length)} টি</span> সক্রিয় হাসপাতাল {selectedDistrict !== 'সকল জেলা' ? `(${selectedDistrict} জেলা)` : selectedDivision !== 'সকল বিভাগ' ? `(${selectedDivision} বিভাগ)` : ''}
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center bg-white p-1 rounded-xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center bg-white p-1 rounded-xl border border-slate-200/80 shadow-2xs">
             <button
+              type="button"
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded-lg transition cursor-pointer ${
                 viewMode === 'grid' ? 'bg-sky-50 text-sky-600 font-bold' : 'text-slate-400 hover:text-slate-600'
@@ -305,6 +388,7 @@ export default function HospitalsClientView({
               <LayoutGrid className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={() => setViewMode('list')}
               className={`p-1.5 rounded-lg transition cursor-pointer ${
                 viewMode === 'list' ? 'bg-sky-50 text-sky-600 font-bold' : 'text-slate-400 hover:text-slate-600'

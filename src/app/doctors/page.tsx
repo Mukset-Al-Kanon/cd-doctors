@@ -1,5 +1,6 @@
 import React from 'react';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/auth';
 import { FALLBACK_DOCTORS } from '@/lib/staticHospitalData';
 import DoctorsClientView from './DoctorsClientView';
 
@@ -9,12 +10,17 @@ interface PageProps {
   searchParams: {
     q?: string;
     specialty?: string;
+    district?: string;
   };
 }
 
 export default async function DoctorsPage({ searchParams }: PageProps) {
   const query = searchParams?.q || '';
   const specialtyFilter = searchParams?.specialty || 'all';
+  const paramDistrict = searchParams?.district;
+
+  const session = await getSession().catch(() => null);
+  const userDistrict = paramDistrict || session?.district || null;
 
   let doctors: any[] = [];
 
@@ -22,13 +28,9 @@ export default async function DoctorsPage({ searchParams }: PageProps) {
     const dbDoctors = await db.doctor.findMany({
       where: {
         status: 'ACTIVE',
-        hospital: { 
-          status: { in: ['ACTIVE', 'APPROVED'] }, 
-          district: { slug: 'chuadanga' } 
-        },
       },
       include: {
-        hospital: { include: { district: true } },
+        hospital: { include: { district: { include: { division: true } } } },
         department: true,
         schedules: true,
       },
@@ -50,6 +52,7 @@ export default async function DoctorsPage({ searchParams }: PageProps) {
       initialDoctors={doctors}
       initialQuery={query}
       initialSpecialty={specialtyFilter}
+      initialUserDistrict={userDistrict}
     />
   );
 }

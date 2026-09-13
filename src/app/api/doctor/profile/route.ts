@@ -34,6 +34,8 @@ export async function PUT(request: Request) {
       visitingHours,
       startTime,
       endTime,
+      isTelemedicineAvailable,
+      telemedicineFee,
     } = body;
 
     // Update Doctor Profile Details
@@ -52,6 +54,8 @@ export async function PUT(request: Request) {
         ...(photoUrl !== undefined && { photoUrl: String(photoUrl).trim() }),
         ...(bio !== undefined && { bio: String(bio).trim() }),
         ...(treatedDiseases !== undefined && { treatedDiseases: String(treatedDiseases).trim() }),
+        ...(isTelemedicineAvailable !== undefined && { isTelemedicineAvailable: Boolean(isTelemedicineAvailable) }),
+        ...(telemedicineFee !== undefined && { telemedicineFee: Math.max(0, parseInt(String(telemedicineFee), 10) || 0) }),
       },
       include: {
         hospital: { select: { id: true, name: true, address: true, phone: true } },
