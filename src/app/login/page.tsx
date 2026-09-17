@@ -19,7 +19,7 @@ import {
   EyeOff,
   ChevronLeft,
   MapPin,
-  Stethoscope
+  UserPlus
 } from 'lucide-react';
 import DistrictSelectDropdown from '@/components/DistrictSelectDropdown';
 
@@ -32,17 +32,12 @@ export default function LoginPage() {
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
-  // Register form state
+  // Register form state (Direct, 0-cost, no OTP)
   const [regName, setRegName] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regDistrict, setRegDistrict] = useState('চুয়াডাঙ্গা');
   const [showRegPassword, setShowRegPassword] = useState(false);
-  const [otpStep, setOtpStep] = useState<'FORM' | 'OTP'>('FORM');
-  const [otpDigits, setOtpDigits] = useState(['', '', '', '']);
-  const [countdown, setCountdown] = useState(60);
-  const [canResend, setCanResend] = useState(false);
-  const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
 
   // Forgot password state
   const [forgotPhone, setForgotPhone] = useState('');
@@ -58,30 +53,12 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  const otpInputRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
-
   const forgotOtpInputRefs = [
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
   ];
-
-  // Countdown timer for registration OTP
-  useEffect(() => {
-    let timer: any;
-    if (otpStep === 'OTP' && countdown > 0) {
-      timer = setInterval(() => setCountdown((c) => c - 1), 1000);
-    } else if (countdown === 0) {
-      setCanResend(true);
-    }
-    return () => clearInterval(timer);
-  }, [otpStep, countdown]);
 
   // Countdown timer for forgot password OTP
   useEffect(() => {
@@ -126,122 +103,89 @@ export default function LoginPage() {
         return;
       }
 
-      setSuccessMessage('লগইন সফল হয়েছে! ড্যাশবোর্ডে প্রবেশ করা হচ্ছে...');
+      setSuccessMessage('লগইন সফল হয়েছে! প্রবেশ করা হচ্ছে...');
       setTimeout(() => {
-        if (data.user?.role === 'SUPER_ADMIN') {
-          router.push('/admin');
-        } else {
-          router.push('/');
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          const redirect = params.get('redirect');
+          if (redirect) {
+            router.push(redirect);
+          } else if (data.user?.role === 'SUPER_ADMIN') {
+            router.push('/admin');
+          } else {
+            router.push('/');
+          }
+          router.refresh();
         }
-        router.refresh();
-      }, 800);
+      }, 700);
     } catch (err) {
       setErrorMessage('সার্ভারের সাথে সংযোগ স্থাপন করা সম্ভব হয়নি।');
       setLoading(false);
     }
   };
 
-  // 2. Handle Send OTP for Registration (Step 1)
-  const handleSendRegistrationOtp = async (e: React.FormEvent) => {
+  // 2. Handle Direct Registration (Instant, 0-cost, No OTP Required)
+  const handleDirectRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     clearMessages();
-    setLoading(true);
 
-    if (!regName.trim()) {
-      setErrorMessage('অনুগ্রহ করে আপনার পুরো নাম লিখুন।');
-      setLoading(false);
+    const cleanPhone = regPhone.trim();
+    if (!regName.trim() || !cleanPhone || !regPassword.trim()) {
+      setErrorMessage('অনুগ্রহ করে নাম, মোবাইল নম্বর এবং পাসওয়ার্ড পূরণ করুন।');
       return;
     }
 
-    const cleanPhone = regPhone.trim();
-    if (!cleanPhone || cleanPhone.length < 10) {
-      setErrorMessage('অনুগ্রহ করে সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন।');
-      setLoading(false);
+    if (!/^01[3-9]\d{8}$/.test(cleanPhone)) {
+      setErrorMessage('অনুগ্রহ করে সঠিক ১১ ডিজিটের বাংলাদেশি মোবাইল নম্বর প্রদান করুন (যেমন: 017XXXXXXXX)।');
       return;
     }
 
     if (regPassword.length < 6) {
       setErrorMessage('পাসওয়ার্ড ন্যূনতম ৬ অক্ষরের হতে হবে।');
-      setLoading(false);
       return;
     }
 
     try {
-      const res = await fetch('/api/auth/otp/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanPhone }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setErrorMessage(data.error || 'ওটিপি পাঠাতে সমস্যা হয়েছে।');
-        setLoading(false);
-        return;
-      }
-
-      setOtpStep('OTP');
-      setCountdown(60);
-      setCanResend(false);
-      setOtpDigits(['', '', '', '']);
-      if (data.devOtp) setDevOtpHint(data.devOtp);
-      setSuccessMessage(data.message || 'আপনার মোবাইলে ৪ ডিজিটের ওটিপি কোড পাঠানো হয়েছে।');
-      setLoading(false);
-
-      setTimeout(() => otpInputRefs[0].current?.focus(), 100);
-    } catch (err) {
-      setErrorMessage('সার্ভারের সাথে সংযোগ স্থাপন করা সম্ভব হয়নি।');
-      setLoading(false);
-    }
-  };
-
-  // 3. Handle Verify OTP and Complete Registration (Step 2)
-  const handleCompleteRegistration = async (e: React.FormEvent) => {
-    e.preventDefault();
-    clearMessages();
-    setLoading(true);
-
-    const otpCode = otpDigits.join('');
-    if (otpCode.length < 4) {
-      setErrorMessage('৪ ডিজিটের সম্পূর্ণ ওটিপি কোড প্রদান করুন।');
-      setLoading(false);
-      return;
-    }
-
-    try {
+      setLoading(true);
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: regName.trim(),
-          phone: regPhone.trim(),
+          phone: cleanPhone,
           password: regPassword,
           district: regDistrict,
-          otpCode,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setErrorMessage(data.error || 'রেজিস্ট্রেশন ব্যর্থ হয়েছে।');
+        setErrorMessage(data.error || 'রেজিস্ট্রেশন সম্পন্ন করা সম্ভব হয়নি।');
         setLoading(false);
         return;
       }
 
-      setSuccessMessage('আপনার একাউন্ট সফলভাবে তৈরি হয়েছে! ড্যাশবোর্ডে প্রবেশ করা হচ্ছে...');
+      setSuccessMessage('রেজিস্ট্রেশন সফল হয়েছে! প্রবেশ করা হচ্ছে...');
       setTimeout(() => {
-        router.push('/');
-        router.refresh();
-      }, 1000);
-    } catch (err) {
-      setErrorMessage('সার্ভারের সাথে সংযোগ স্থাপন করা সম্ভব হয়নি।');
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          const redirect = params.get('redirect');
+          if (redirect) {
+            router.push(redirect);
+          } else {
+            router.push('/');
+          }
+          router.refresh();
+        }
+      }, 700);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'নেটওয়ার্ক ত্রুটি। আবার চেষ্টা করুন।');
       setLoading(false);
     }
   };
 
-  // 4. Handle Send OTP for Forgot Password
+  // 3. Handle Send OTP for Forgot Password
   const handleSendForgotOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     clearMessages();
@@ -283,7 +227,7 @@ export default function LoginPage() {
     }
   };
 
-  // 5. Handle Reset Password with OTP
+  // 4. Handle Reset Password with OTP
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     clearMessages();
@@ -376,23 +320,20 @@ export default function LoginPage() {
               </div>
             </div>
           </Link>
-
-          <div className="space-y-1 pt-1">
-            <h2 className="text-xl sm:text-2xl font-black text-nuvicaNavy-900 tracking-tight font-noto-bengali-heading">
-              {activeTab === 'LOGIN' && 'অ্যাকাউন্টে প্রবেশ করুন'}
-              {activeTab === 'REGISTER' && 'নতুন পেশেন্ট অ্যাকাউন্ট তৈরি করুন'}
-              {activeTab === 'FORGOT_PASSWORD' && 'পাসওয়ার্ড পুনরুদ্ধার করুন'}
+          <div className="space-y-1">
+            <h2 className="text-2xl font-black text-nuvicaNavy-900 tracking-tight">
+              {activeTab === 'LOGIN' ? 'অ্যাকাউন্টে প্রবেশ করুন' : activeTab === 'REGISTER' ? 'নতুন অ্যাকাউন্ট তৈরি করুন' : 'পাসওয়ার্ড পুনরুদ্ধার'}
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            <p className="text-xs text-slate-500 font-medium">
               চুয়াডাঙ্গার হাসপাতাল, বিশেষজ্ঞ ডাক্তার ও জরুরি স্বাস্থ্যসেবা
             </p>
           </div>
         </div>
 
-        {/* Auth Box Container */}
+        {/* Main Card Container */}
         <div className="bg-white/95 backdrop-blur-xl p-7 sm:p-9 rounded-[32px] border border-slate-200/90 shadow-[0_20px_60px_-15px_rgba(15,23,42,0.08)] hover:shadow-[0_25px_70px_-15px_rgba(15,23,42,0.12)] transition-all duration-500 space-y-6">
           
-          {/* Top Switcher Tabs (Login vs Register) with Smooth Animation */}
+          {/* Top Switcher Tabs (Login vs Register) */}
           {activeTab !== 'FORGOT_PASSWORD' && (
             <div className="p-1.5 bg-slate-100/90 backdrop-blur-md rounded-2xl border border-slate-200/70 shadow-inner flex gap-1.5">
               <button
@@ -401,7 +342,7 @@ export default function LoginPage() {
                   setActiveTab('LOGIN');
                   clearMessages();
                 }}
-                className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all duration-300 ease-out flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all duration-300 ease-out flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === 'LOGIN'
                     ? 'bg-white text-sky-700 shadow-md shadow-slate-300/30 scale-[1.01] -translate-y-0.5 border border-slate-100'
                     : 'text-slate-500 hover:text-nuvicaNavy-900 hover:bg-white/60'
@@ -413,10 +354,9 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => {
                   setActiveTab('REGISTER');
-                  setOtpStep('FORM');
                   clearMessages();
                 }}
-                className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all duration-300 ease-out flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all duration-300 ease-out flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === 'REGISTER'
                     ? 'bg-white text-sky-700 shadow-md shadow-slate-300/30 scale-[1.01] -translate-y-0.5 border border-slate-100'
                     : 'text-slate-500 hover:text-nuvicaNavy-900 hover:bg-white/60'
@@ -427,7 +367,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Feedback Alerts */}
+          {/* Error Message Box */}
           {errorMessage && (
             <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-start gap-2.5 animate-fadeIn shadow-2xs">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -435,6 +375,7 @@ export default function LoginPage() {
             </div>
           )}
 
+          {/* Success Message Box */}
           {successMessage && (
             <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-start gap-2.5 animate-fadeIn shadow-2xs">
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
@@ -443,11 +384,11 @@ export default function LoginPage() {
           )}
 
           {/* ========================================================
-              TAB 1: LOGIN FORM (100% PHONE + PASSWORD)
+              TAB 1: LOGIN FORM
               ======================================================== */}
           {activeTab === 'LOGIN' && (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
-              {/* Integrated Phone Input */}
+              {/* Phone Input with +88 fixed badge */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700">মোবাইল নম্বর</label>
                 <div className="flex items-center rounded-2xl bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-slate-300 focus-within:border-sky-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-sky-500/10 focus-within:shadow-md shadow-2xs transition-all duration-300 overflow-hidden group">
@@ -465,7 +406,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Integrated Password Input */}
+              {/* Password Input */}
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
                   <label className="text-xs font-bold text-slate-700">পাসওয়ার্ড</label>
@@ -477,7 +418,7 @@ export default function LoginPage() {
                       setForgotStep('PHONE');
                       clearMessages();
                     }}
-                    className="relative text-[11px] font-bold text-sky-600 hover:text-sky-700 transition-colors after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 hover:after:w-full after:h-[1px] after:bg-sky-600 after:transition-all after:duration-300"
+                    className="relative text-[11px] font-bold text-sky-600 hover:text-sky-700 transition-colors after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 hover:after:w-full after:h-[1px] after:bg-sky-600 after:transition-all after:duration-300 cursor-pointer"
                   >
                     পাসওয়ার্ড ভুলে গেছেন?
                   </button>
@@ -497,7 +438,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowLoginPassword(!showLoginPassword)}
-                    className="pr-3.5 pl-2 text-slate-400 hover:text-sky-600 hover:scale-110 active:scale-95 transition-all"
+                    className="pr-3.5 pl-2 text-slate-400 hover:text-sky-600 hover:scale-110 active:scale-95 transition-all cursor-pointer"
                   >
                     {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -508,7 +449,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="group/btn relative w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 hover:from-sky-700 hover:via-sky-600 hover:to-sky-700 text-white font-black text-xs sm:text-sm shadow-md hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300 ease-out flex items-center justify-center gap-2 overflow-hidden disabled:opacity-50"
+                className="group/btn relative w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 hover:from-sky-700 hover:via-sky-600 hover:to-sky-700 text-white font-black text-xs sm:text-sm shadow-md hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300 ease-out flex items-center justify-center gap-2 overflow-hidden disabled:opacity-50 cursor-pointer"
               >
                 <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-in-out pointer-events-none" />
                 {loading ? (
@@ -522,24 +463,14 @@ export default function LoginPage() {
                   </>
                 )}
               </button>
-
-              <div className="pt-2 text-center">
-                <Link
-                  href="/doctor/login"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-700 hover:text-sky-800 transition-colors"
-                >
-                  <Stethoscope className="w-3.5 h-3.5" />
-                  <span>আপনি কি একজন ডাক্তার? ডাক্তার লগইন পোর্টালে যান ➔</span>
-                </Link>
-              </div>
             </form>
           )}
 
           {/* ========================================================
-              TAB 2: REGISTER FORM (100% PHONE + 2-STEP OTP)
+              TAB 2: REGISTER FORM (DIRECT 1-STEP, NO OTP REQUIRED)
               ======================================================== */}
-          {activeTab === 'REGISTER' && otpStep === 'FORM' && (
-            <form onSubmit={handleSendRegistrationOtp} className="space-y-4">
+          {activeTab === 'REGISTER' && (
+            <form onSubmit={handleDirectRegister} className="space-y-4">
               {/* Full Name */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700">পুরো নাম</label>
@@ -578,7 +509,7 @@ export default function LoginPage() {
 
               {/* Integrated Password */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">নতুন পাসওয়ার্ড</label>
+                <label className="text-xs font-bold text-slate-700">পাসওয়ার্ড</label>
                 <div className="flex items-center rounded-2xl bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-slate-300 focus-within:border-sky-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-sky-500/10 focus-within:shadow-md shadow-2xs transition-all duration-300 overflow-hidden group">
                   <div className="pl-3.5 pr-2 py-3 text-slate-400 group-focus-within:text-sky-600 transition-colors shrink-0">
                     <Lock className="w-4 h-4" />
@@ -595,7 +526,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowRegPassword(!showRegPassword)}
-                    className="pr-3.5 pl-2 text-slate-400 hover:text-sky-600 hover:scale-110 active:scale-95 transition-all"
+                    className="pr-3.5 pl-2 text-slate-400 hover:text-sky-600 hover:scale-110 active:scale-95 transition-all cursor-pointer"
                   >
                     {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -609,21 +540,21 @@ export default function LoginPage() {
                 label="আপনার জেলা / লোকেশন"
               />
 
-              {/* Send OTP Button */}
+              {/* Instant Register Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="group/btn relative w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 hover:from-sky-700 hover:via-sky-600 hover:to-sky-700 text-white font-black text-xs sm:text-sm shadow-md hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300 ease-out flex items-center justify-center gap-2 overflow-hidden disabled:opacity-50"
+                className="group/btn relative w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 hover:from-sky-700 hover:via-sky-600 hover:to-sky-700 text-white font-black text-xs sm:text-sm shadow-md hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300 ease-out flex items-center justify-center gap-2 overflow-hidden disabled:opacity-50 cursor-pointer"
               >
                 <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-in-out pointer-events-none" />
                 {loading ? (
                   <span className="relative z-10 inline-flex items-center gap-2">
-                    <RotateCcw className="w-4 h-4 animate-spin" /> ওটিপি পাঠানো হচ্ছে...
+                    <RotateCcw className="w-4 h-4 animate-spin" /> অ্যাকাউন্ট তৈরি হচ্ছে...
                   </span>
                 ) : (
                   <>
-                    <Phone className="relative z-10 w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-                    <span className="relative z-10">ওটিপি কোড পাঠান</span>
+                    <UserPlus className="relative z-10 w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                    <span className="relative z-10">অ্যাকাউন্ট তৈরি করুন</span>
                   </>
                 )}
               </button>
@@ -631,35 +562,94 @@ export default function LoginPage() {
           )}
 
           {/* ========================================================
-              REGISTER STEP 2: 4-DIGIT PIN OTP VERIFICATION
+              TAB 3: FORGOT PASSWORD (STEP 1: PHONE)
               ======================================================== */}
-          {activeTab === 'REGISTER' && otpStep === 'OTP' && (
-            <form onSubmit={handleCompleteRegistration} className="space-y-6">
-              <div className="text-center space-y-1">
-                <div className="w-12 h-12 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center mx-auto border border-sky-200 shadow-sm animate-bounce">
-                  <KeyRound className="w-6 h-6" />
+          {activeTab === 'FORGOT_PASSWORD' && forgotStep === 'PHONE' && (
+            <form onSubmit={handleSendForgotOtp} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">নিবন্ধিত মোবাইল নম্বর</label>
+                <div className="flex items-center rounded-2xl bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-slate-300 focus-within:border-sky-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-sky-500/10 focus-within:shadow-md shadow-2xs transition-all duration-300 overflow-hidden group">
+                  <div className="flex items-center gap-1 px-3.5 py-3 bg-slate-100/70 border-r border-slate-200/90 select-none shrink-0 group-hover:bg-slate-100 transition-colors">
+                    <span className="text-xs font-black text-slate-600 tracking-wide">+88</span>
+                  </div>
+                  <input
+                    type="tel"
+                    value={forgotPhone}
+                    onChange={(e) => setForgotPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                    placeholder="01XXXXXXXXX"
+                    required
+                    className="w-full px-3.5 py-3 bg-transparent text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                  />
                 </div>
-                <p className="text-xs text-slate-600 font-medium pt-2">
-                  <span className="font-bold text-nuvicaNavy-900">+88{regPhone}</span> নম্বরে পাঠানো ৪ ডিজিটের ওটিপি কোডটি লিখুন:
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('LOGIN');
+                    clearMessages();
+                  }}
+                  className="text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>লগইন পেজে ফিরুন</span>
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="group/btn relative w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 hover:from-sky-700 hover:via-sky-600 hover:to-sky-700 text-white font-black text-xs sm:text-sm shadow-md hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300 ease-out flex items-center justify-center gap-2 overflow-hidden disabled:opacity-50 cursor-pointer"
+              >
+                <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-in-out pointer-events-none" />
+                {loading ? (
+                  <span className="relative z-10 inline-flex items-center gap-2">
+                    <RotateCcw className="w-4 h-4 animate-spin" /> কোড পাঠানো হচ্ছে...
+                  </span>
+                ) : (
+                  <>
+                    <Phone className="relative z-10 w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                    <span className="relative z-10">রিসেট ওটিপি কোড পাঠান</span>
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* ========================================================
+              TAB 3: FORGOT PASSWORD (STEP 2: OTP & NEW PASSWORD)
+              ======================================================== */}
+          {activeTab === 'FORGOT_PASSWORD' && forgotStep === 'RESET' && (
+            <form onSubmit={handleResetPassword} className="space-y-5">
+              <div className="text-center space-y-1">
+                <p className="text-xs text-slate-600 font-medium">
+                  <span className="font-bold text-nuvicaNavy-900">+88{forgotPhone}</span> নম্বরে পাঠানো ৪ ডিজিটের ওটিপি লিখুন:
                 </p>
               </div>
 
               {/* 4 OTP PIN Boxes */}
               <div className="flex justify-center gap-3">
-                {otpDigits.map((digit, index) => (
+                {forgotOtpDigits.map((digit, index) => (
                   <input
                     key={index}
-                    ref={otpInputRefs[index]}
+                    ref={forgotOtpInputRefs[index]}
                     type="text"
                     inputMode="numeric"
                     maxLength={1}
                     value={digit}
                     onChange={(e) =>
-                      handleOtpBoxChange(index, e.target.value, otpDigits, setOtpDigits, otpInputRefs)
+                      handleOtpBoxChange(
+                        index,
+                        e.target.value,
+                        forgotOtpDigits,
+                        setForgotOtpDigits,
+                        forgotOtpInputRefs
+                      )
                     }
                     onKeyDown={(e) => {
-                      if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
-                        otpInputRefs[index - 1].current?.focus();
+                      if (e.key === 'Backspace' && !forgotOtpDigits[index] && index > 0) {
+                        forgotOtpInputRefs[index - 1].current?.focus();
                       }
                     }}
                     className="w-12 h-14 text-center text-xl font-black bg-slate-50 hover:bg-white focus:bg-white border-2 border-slate-200 hover:border-sky-300 focus:border-sky-600 rounded-2xl shadow-2xs hover:shadow-xs focus:shadow-lg focus:ring-4 focus:ring-sky-500/10 focus:outline-none transition-all duration-300 ease-out"
@@ -667,213 +657,74 @@ export default function LoginPage() {
                 ))}
               </div>
 
-              {/* Resend OTP & Countdown Timer */}
-              <div className="flex items-center justify-between text-xs font-semibold pt-1">
-                <button
-                  type="button"
-                  onClick={() => setOtpStep('FORM')}
-                  className="text-slate-500 hover:text-nuvicaNavy-900 hover:underline transition-colors"
-                >
-                  ← নম্বর পরিবর্তন করুন
-                </button>
-
-                {canResend ? (
+              {/* Integrated New Password */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">নতুন পাসওয়ার্ড</label>
+                <div className="flex items-center rounded-2xl bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-slate-300 focus-within:border-sky-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-sky-500/10 focus-within:shadow-md shadow-2xs transition-all duration-300 overflow-hidden group">
+                  <div className="pl-3.5 pr-2 py-3 text-slate-400 group-focus-within:text-sky-600 transition-colors shrink-0">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showForgotNewPassword ? 'text' : 'password'}
+                    value={forgotNewPassword}
+                    onChange={(e) => setForgotNewPassword(e.target.value)}
+                    placeholder="ন্যূনতম ৬ অক্ষরের নতুন পাসওয়ার্ড"
+                    required
+                    minLength={6}
+                    className="w-full pr-2 py-3 bg-transparent text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                  />
                   <button
                     type="button"
-                    onClick={(e) => handleSendRegistrationOtp(e)}
-                    className="text-sky-600 hover:text-sky-700 font-bold hover:underline transition-colors"
+                    onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                    className="pr-3.5 pl-2 text-slate-400 hover:text-sky-600 hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                  >
+                    {showForgotNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Resend link */}
+              <div className="flex justify-between items-center text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setForgotStep('PHONE')}
+                  className="text-slate-500 hover:text-nuvicaNavy-900 hover:underline transition-colors cursor-pointer"
+                >
+                  ← নম্বর পরিবর্তন
+                </button>
+                {forgotCanResend ? (
+                  <button
+                    type="button"
+                    onClick={(e) => handleSendForgotOtp(e)}
+                    className="text-sky-600 hover:text-sky-700 font-bold hover:underline transition-colors cursor-pointer"
                   >
                     পুনরায় কোড পাঠান
                   </button>
                 ) : (
                   <span className="text-slate-400">
-                    পুনরায় পাঠান ({countdown}s)
+                    পুনরায় পাঠান ({forgotCountdown}s)
                   </span>
                 )}
               </div>
 
-              {/* Verify & Create Account Button */}
               <button
                 type="submit"
-                disabled={loading || otpDigits.join('').length < 4}
-                className="group/btn relative w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-700 hover:via-emerald-600 hover:to-emerald-700 text-white font-black text-xs sm:text-sm shadow-md hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300 ease-out flex items-center justify-center gap-2 overflow-hidden disabled:opacity-50"
+                disabled={loading || forgotOtpDigits.join('').length < 4}
+                className="group/btn relative w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-700 hover:via-emerald-600 hover:to-emerald-700 text-white font-black text-xs sm:text-sm shadow-md hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300 ease-out flex items-center justify-center gap-2 overflow-hidden disabled:opacity-50 cursor-pointer"
               >
                 <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-in-out pointer-events-none" />
                 {loading ? (
                   <span className="relative z-10 inline-flex items-center gap-2">
-                    <RotateCcw className="w-4 h-4 animate-spin" /> একাউন্ট তৈরি হচ্ছে...
+                    <RotateCcw className="w-4 h-4 animate-spin" /> পাসওয়ার্ড পরিবর্তন হচ্ছে...
                   </span>
                 ) : (
                   <>
                     <CheckCircle2 className="relative z-10 w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-                    <span className="relative z-10">যাচাই করে একাউন্ট তৈরি করুন</span>
+                    <span className="relative z-10">পাসওয়ার্ড পরিবর্তন করুন</span>
                   </>
                 )}
               </button>
             </form>
-          )}
-
-          {/* ========================================================
-              TAB 3: FORGOT PASSWORD (100% PHONE + OTP RESET)
-              ======================================================== */}
-          {activeTab === 'FORGOT_PASSWORD' && (
-            <div className="space-y-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('LOGIN');
-                  clearMessages();
-                }}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-nuvicaNavy-900 pb-2 transition-colors group/back"
-              >
-                <ChevronLeft className="w-4 h-4 group-hover/back:-translate-x-1 transition-transform" /> লগইন পেজে ফিরে যান
-              </button>
-
-              {forgotStep === 'PHONE' ? (
-                <form onSubmit={handleSendForgotOtp} className="space-y-4">
-                  {/* Integrated Phone Input */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">একাউন্টের মোবাইল নম্বর</label>
-                    <div className="flex items-center rounded-2xl bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-slate-300 focus-within:border-sky-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-sky-500/10 focus-within:shadow-md shadow-2xs transition-all duration-300 overflow-hidden group">
-                      <div className="flex items-center gap-1 px-3.5 py-3 bg-slate-100/70 border-r border-slate-200/90 select-none shrink-0 group-hover:bg-slate-100 transition-colors">
-                        <span className="text-xs font-black text-slate-600 tracking-wide">+88</span>
-                      </div>
-                      <input
-                        type="tel"
-                        value={forgotPhone}
-                        onChange={(e) => setForgotPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                        placeholder="01XXXXXXXXX"
-                        required
-                        className="w-full px-3.5 py-3 bg-transparent text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="group/btn relative w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 hover:from-sky-700 hover:via-sky-600 hover:to-sky-700 text-white font-black text-xs sm:text-sm shadow-md hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300 ease-out flex items-center justify-center gap-2 overflow-hidden disabled:opacity-50"
-                  >
-                    <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-in-out pointer-events-none" />
-                    {loading ? (
-                      <span className="relative z-10 inline-flex items-center gap-2">
-                        <RotateCcw className="w-4 h-4 animate-spin" /> কোড পাঠানো হচ্ছে...
-                      </span>
-                    ) : (
-                      <>
-                        <Phone className="relative z-10 w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-                        <span className="relative z-10">রিসেট ওটিপি কোড পাঠান</span>
-                      </>
-                    )}
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleResetPassword} className="space-y-5">
-                  <div className="text-center space-y-1">
-                    <p className="text-xs text-slate-600 font-medium">
-                      <span className="font-bold text-nuvicaNavy-900">+88{forgotPhone}</span> নম্বরে পাঠানো ৪ ডিজিটের ওটিপি লিখুন:
-                    </p>
-                  </div>
-
-                  {/* 4 OTP PIN Boxes */}
-                  <div className="flex justify-center gap-3">
-                    {forgotOtpDigits.map((digit, index) => (
-                      <input
-                        key={index}
-                        ref={forgotOtpInputRefs[index]}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) =>
-                          handleOtpBoxChange(
-                            index,
-                            e.target.value,
-                            forgotOtpDigits,
-                            setForgotOtpDigits,
-                            forgotOtpInputRefs
-                          )
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === 'Backspace' && !forgotOtpDigits[index] && index > 0) {
-                            forgotOtpInputRefs[index - 1].current?.focus();
-                          }
-                        }}
-                        className="w-12 h-14 text-center text-xl font-black bg-slate-50 hover:bg-white focus:bg-white border-2 border-slate-200 hover:border-sky-300 focus:border-sky-600 rounded-2xl shadow-2xs hover:shadow-xs focus:shadow-lg focus:ring-4 focus:ring-sky-500/10 focus:outline-none transition-all duration-300 ease-out"
-                      />
-                    ))}
-                  </div>
-
-                  {/* Integrated New Password */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">নতুন পাসওয়ার্ড</label>
-                    <div className="flex items-center rounded-2xl bg-slate-50/90 hover:bg-white border border-slate-200 hover:border-slate-300 focus-within:border-sky-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-sky-500/10 focus-within:shadow-md shadow-2xs transition-all duration-300 overflow-hidden group">
-                      <div className="pl-3.5 pr-2 py-3 text-slate-400 group-focus-within:text-sky-600 transition-colors shrink-0">
-                        <Lock className="w-4 h-4" />
-                      </div>
-                      <input
-                        type={showForgotNewPassword ? 'text' : 'password'}
-                        value={forgotNewPassword}
-                        onChange={(e) => setForgotNewPassword(e.target.value)}
-                        placeholder="ন্যূনতম ৬ অক্ষরের নতুন পাসওয়ার্ড"
-                        required
-                        minLength={6}
-                        className="w-full pr-2 py-3 bg-transparent text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
-                        className="pr-3.5 pl-2 text-slate-400 hover:text-sky-600 hover:scale-110 active:scale-95 transition-all"
-                      >
-                        {showForgotNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Resend link */}
-                  <div className="flex justify-between items-center text-xs font-semibold">
-                    <button
-                      type="button"
-                      onClick={() => setForgotStep('PHONE')}
-                      className="text-slate-500 hover:text-nuvicaNavy-900 hover:underline transition-colors"
-                    >
-                      ← নম্বর পরিবর্তন
-                    </button>
-                    {forgotCanResend ? (
-                      <button
-                        type="button"
-                        onClick={(e) => handleSendForgotOtp(e)}
-                        className="text-sky-600 hover:text-sky-700 font-bold hover:underline transition-colors"
-                      >
-                        পুনরায় কোড পাঠান
-                      </button>
-                    ) : (
-                      <span className="text-slate-400">
-                        পুনরায় পাঠান ({forgotCountdown}s)
-                      </span>
-                    )}
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading || forgotOtpDigits.join('').length < 4}
-                    className="group/btn relative w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-700 hover:via-emerald-600 hover:to-emerald-700 text-white font-black text-xs sm:text-sm shadow-md hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300 ease-out flex items-center justify-center gap-2 overflow-hidden disabled:opacity-50"
-                  >
-                    <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-in-out pointer-events-none" />
-                    {loading ? (
-                      <span className="relative z-10 inline-flex items-center gap-2">
-                        <RotateCcw className="w-4 h-4 animate-spin" /> পাসওয়ার্ড পরিবর্তন হচ্ছে...
-                      </span>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="relative z-10 w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-                        <span className="relative z-10">পাসওয়ার্ড পরিবর্তন করুন</span>
-                      </>
-                    )}
-                  </button>
-                </form>
-              )}
-            </div>
           )}
 
         </div>

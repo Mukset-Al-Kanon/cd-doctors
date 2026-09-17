@@ -22,20 +22,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'পাসওয়ার্ড ন্যূনতম ৬ অক্ষরের হতে হবে।' }, { status: 400 });
     }
 
-    // Verify Phone OTP (either directly pre-verified or passed via otpCode)
-    let phoneIsVerified = await isPhoneVerified(normalizedPhone);
-    if (!phoneIsVerified && otpCode) {
-      const verifyRes = await verifyOtpCode(normalizedPhone, otpCode);
-      if (verifyRes.success) {
-        phoneIsVerified = true;
+    // Verify Phone OTP (only if REQUIRE_OTP_VERIFICATION is explicitly set to 'true')
+    const requireOtp = process.env.REQUIRE_OTP_VERIFICATION === 'true';
+    if (requireOtp) {
+      let phoneIsVerified = await isPhoneVerified(normalizedPhone);
+      if (!phoneIsVerified && otpCode) {
+        const verifyRes = await verifyOtpCode(normalizedPhone, otpCode);
+        if (verifyRes.success) {
+          phoneIsVerified = true;
+        }
       }
-    }
 
-    if (!phoneIsVerified) {
-      return NextResponse.json(
-        { error: 'মোবাইল নম্বরটি ওটিপি (OTP) দ্বারা যাচাই করা হয়নি। অনুগ্রহ করে ওটিপি যাচাই সম্পন্ন করুন।' },
-        { status: 400 }
-      );
+      if (!phoneIsVerified) {
+        return NextResponse.json(
+          { error: 'মোবাইল নম্বরটি ওটিপি (OTP) দ্বারা যাচাই করা হয়নি। অনুগ্রহ করে ওটিপি যাচাই সম্পন্ন করুন।' },
+          { status: 400 }
+        );
+      }
     }
 
     const systemEmail = `${normalizedPhone}@cddoctors.com`;
