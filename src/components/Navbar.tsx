@@ -31,7 +31,8 @@ import {
   ChevronLeft,
   MoreVertical,
   Activity,
-  Video
+  Video,
+  ChevronDown
 } from 'lucide-react';
 import ProfileEditModal from './ProfileEditModal';
 import NotificationModal from './NotificationModal';
@@ -52,9 +53,10 @@ export default function Navbar() {
     district?: string | null;
   } | null>(null);
 
-  // Hide Navbar completely on login, register, doctor portal, and admin portal
+  // Hide Navbar completely on login, register, doctor portal, admin portal, and hospital counter portal
   const isDoctorPortal = pathname === '/doctor' || pathname.startsWith('/doctor/');
   const isAdminPortal = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isHospitalPortal = pathname === '/hospital' || pathname.startsWith('/hospital/');
   const isAuthPage = 
     pathname === '/login' || 
     pathname.startsWith('/login/') || 
@@ -63,16 +65,16 @@ export default function Navbar() {
 
   // Fetch user session
   useEffect(() => {
-    if (isDoctorPortal || isAdminPortal || isAuthPage) return;
+    if (isDoctorPortal || isAdminPortal || isHospitalPortal || isAuthPage) return;
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
         if (data.user) setUser(data.user);
       })
       .catch(() => setUser(null));
-  }, [pathname, isDoctorPortal, isAdminPortal, isAuthPage]);
+  }, [pathname, isDoctorPortal, isAdminPortal, isHospitalPortal, isAuthPage]);
 
-  if (isAuthPage || isDoctorPortal || isAdminPortal) {
+  if (isAuthPage || isDoctorPortal || isAdminPortal || isHospitalPortal) {
     return null;
   }
 
@@ -148,6 +150,8 @@ export default function Navbar() {
     pathname.startsWith('/blood/') || 
     pathname === '/emergency' || 
     pathname.startsWith('/emergency/');
+
+  const isDoctorDetailPage = pathname?.startsWith('/doctors/') && pathname !== '/doctors';
 
   return (
     <>
@@ -233,7 +237,7 @@ export default function Navbar() {
             <div className="w-full h-full bg-white rounded-t-[14px] xs:rounded-t-[16px] sm:rounded-t-[18px] shadow-[0_-3px_10px_rgba(4,20,50,0.06)]" />
           </div>
         </div>
-      ) : (
+      ) : isDoctorDetailPage ? null : (
         /* 🌟 SUB-PAGE COMPACT HEADER BAR */
         <div className={`block md:hidden sticky top-0 z-50 font-bengali select-none w-full ${
           isRedHeader 
@@ -373,17 +377,48 @@ export default function Navbar() {
                   </button>
                 </div>
               ) : (
-                <Link
-                  href="/login"
-                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-black text-xs shadow-sm transition-all cursor-pointer ${
-                    isRedHeader
-                      ? 'bg-white text-rose-600 hover:bg-rose-50'
-                      : 'text-white bg-sky-600 hover:bg-sky-700'
-                  }`}
-                >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>লগইন / সাইন আপ</span>
-                </Link>
+                <div className="relative group/auth">
+                  <Link
+                    href="/login"
+                    className={`inline-flex items-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-full font-black text-xs shadow-sm transition-all cursor-pointer ${
+                      isRedHeader
+                        ? 'bg-white text-rose-600 hover:bg-rose-50'
+                        : 'text-white bg-sky-600 hover:bg-sky-700'
+                    }`}
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>লগইন / সাইন আপ</span>
+                    <ChevronDown className="w-3 h-3 text-white/80 group-hover/auth:rotate-180 transition-transform duration-200" />
+                  </Link>
+
+                  {/* Elegant Floating Role Popover on Hover */}
+                  <div className="absolute right-0 top-full mt-2 w-56 p-2 bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200/90 shadow-xl opacity-0 translate-y-2 pointer-events-none group-hover/auth:opacity-100 group-hover/auth:translate-y-0 group-hover/auth:pointer-events-auto transition-all duration-200 z-50 space-y-1">
+                    <div className="px-2.5 py-1 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                      পোর্টাল নির্বাচন করুন
+                    </div>
+                    <Link
+                      href="/login"
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-sky-50 hover:text-sky-800 transition-colors"
+                    >
+                      <User className="w-3.5 h-3.5 text-sky-600" />
+                      <span>সাধারণ রোগী লগইন</span>
+                    </Link>
+                    <Link
+                      href="/doctor/login"
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-sky-50 hover:text-sky-800 transition-colors"
+                    >
+                      <Stethoscope className="w-3.5 h-3.5 text-sky-600" />
+                      <span>ডাক্তার পোর্টাল</span>
+                    </Link>
+                    <Link
+                      href="/hospital/login"
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-sky-50 hover:text-sky-800 transition-colors"
+                    >
+                      <Building2 className="w-3.5 h-3.5 text-sky-600" />
+                      <span>হাসপাতাল কাউন্টার</span>
+                    </Link>
+                  </div>
+                </div>
               )}
             </div>
 
@@ -447,13 +482,34 @@ export default function Navbar() {
                 <button onClick={handleLogout} className="text-xs font-bold text-rose-600">লগআউট</button>
               </div>
             ) : (
-              <Link
-                href="/login"
-                onClick={closeMobileMenu}
-                className="w-full bg-sky-600 text-white font-black text-xs py-3 rounded-xl text-center block shadow-xs"
-              >
-                লগইন / সাইন আপ
-              </Link>
+              <div className="pt-4 border-t border-slate-100 space-y-2">
+                <Link
+                  href="/login"
+                  onClick={closeMobileMenu}
+                  className="w-full bg-sky-600 hover:bg-sky-700 text-white font-black text-xs py-3 rounded-xl text-center flex items-center justify-center gap-2 shadow-xs transition-colors"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>রোগী লগইন / সাইন আপ</span>
+                </Link>
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    href="/doctor/login"
+                    onClick={closeMobileMenu}
+                    className="py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-800 text-[11px] font-bold text-center border border-slate-200/80 transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Stethoscope className="w-3.5 h-3.5 text-sky-600" />
+                    <span>ডাক্তার পোর্টাল</span>
+                  </Link>
+                  <Link
+                    href="/hospital/login"
+                    onClick={closeMobileMenu}
+                    className="py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-800 text-[11px] font-bold text-center border border-slate-200/80 transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Building2 className="w-3.5 h-3.5 text-sky-600" />
+                    <span>হাসপাতাল</span>
+                  </Link>
+                </div>
+              </div>
             )}
           </div>
         </div>

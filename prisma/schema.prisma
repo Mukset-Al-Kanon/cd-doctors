@@ -81,6 +81,9 @@ model Hospital {
   logoUrl         String?
   coverUrl        String?
   licenseNumber   String
+  visitingHours   String?
+  noticeText      String?
+  bedStats        String?                // JSON string e.g. {"generalBedsTotal": 100, "generalBedsAvailable": 25, "icuTotal": 10, "icuAvailable": 3, "cabinTotal": 30, "cabinAvailable": 8}
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
 
@@ -93,6 +96,8 @@ model Hospital {
   subscriptions   HospitalSubscription[]
   auditLogs       AuditLog[]
   testAvailabilities TestAvailability[]
+  doctorSchedules DoctorSchedule[]
+  staff           HospitalStaff[]
 }
 
 model DiagnosticTest {
@@ -119,6 +124,27 @@ model TestAvailability {
   lastVerifiedAt     DateTime       @default(now())
 
   @@unique([testId, hospitalId])
+}
+
+model HospitalStaff {
+  id           String    @id @default(uuid())
+  hospitalId   String
+  hospital     Hospital  @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  doctorId     String?   // Optional: Assigned to a specific doctor
+  doctor       Doctor?   @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  name         String
+  phone        String
+  role         String    @default("CENTRAL_RECEPTIONIST") // "CENTRAL_RECEPTIONIST" | "DOCTOR_ASSISTANT"
+  passwordHash String
+  isActive     Boolean   @default(true)
+  notes        String?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([hospitalId, phone])
+  @@index([hospitalId])
+  @@index([doctorId])
 }
 
 model HospitalFacility {
@@ -193,6 +219,62 @@ model Doctor {
   withdrawalRequests WithdrawalRequest[]
   prescriptions      Prescription[]
   prescriptionTemplates PrescriptionTemplate[]
+  assistants         HospitalStaff[]
+  followersCount     Int              @default(0)
+  posts              DoctorPost[]
+}
+
+model DoctorPost {
+  id           String               @id @default(uuid())
+  doctorId     String
+  doctor       Doctor               @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  content      String
+  mediaType    String               @default("NONE") // "NONE" | "IMAGE" | "YOUTUBE"
+  mediaUrl     String?
+  videoTitle   String?
+  helpfulCount Int                  @default(0)
+  sharesCount  Int                  @default(0)
+  isPublished  Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  reactions    DoctorPostReaction[]
+  comments     DoctorPostComment[]
+
+  @@index([doctorId])
+  @@index([createdAt])
+}
+
+model DoctorPostReaction {
+  id        String     @id @default(uuid())
+  postId    String
+  post      DoctorPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userIp    String?
+  createdAt DateTime   @default(now())
+
+  @@unique([postId, userIp])
+  @@index([postId])
+}
+
+model DoctorPostComment {
+  id            String               @id @default(uuid())
+  postId        String
+  post          DoctorPost           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId        String?
+  userName      String               @default("User")
+  userAvatar    String?
+  content       String
+  likesCount    Int                  @default(0)
+  dislikesCount Int                  @default(0)
+  parentId      String?              // For nested replies
+  parent        DoctorPostComment?   @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       DoctorPostComment[]  @relation("CommentReplies")
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([postId])
+  @@index([parentId])
+  @@index([createdAt])
 }
 
 model WithdrawalRequest {
@@ -265,20 +347,35 @@ model SocialPostLog {
 }
 
 model DoctorSchedule {
-  id                  String   @id @default(uuid())
+  id                  String    @id @default(uuid())
   doctorId            String
-  doctor              Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  chamberName         String?  // e.g. "ইমপ্যাক্ট হাসপাতাল" or "নিজস্ব চেম্বার"
+  doctor              Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  hospitalId          String?
+  hospital            Hospital? @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
+  chamberName         String?  // e.g. "চুয়াডাঙ্গা মেডিকেল সেন্টার" or "নিজস্ব চেম্বার"
   chamberAddress      String?
+  roomNumber          String?  // e.g. "রুম ২০৪"
   division            String?  // e.g. "খুলনা"
   district            String?  // e.g. "চুয়াডাঙ্গা"
   dayOfWeek           Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   startTime           String   // HH:MM e.g. "17:00"
   endTime             String   // HH:MM e.g. "20:00"
   consultationFee     Int?
-  slotDurationMinutes Int      @default(20)
-  maxPatients         Int      @default(10)
-  isTelemedicine      Boolean  @default(false)
+  slotDurationMinutes Int       @default(20)
+  maxPatients         Int       @default(10)
+  isTelemedicine      Boolean   @default(false)
+  
+  // Hospital Affiliation & Approval Protocol
+  approvalStatus      String    @default("APPROVED") // "PENDING" | "APPROVED" | "REJECTED"
+  requestNote         String?
+  rejectionReason     String?
+  approvedAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now()) @updatedAt
+
+  @@index([doctorId])
+  @@index([hospitalId])
+  @@index([hospitalId, approvalStatus])
 }
 
 model Appointment {

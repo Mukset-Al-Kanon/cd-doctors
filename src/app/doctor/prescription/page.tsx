@@ -523,7 +523,7 @@ function DoctorPrescriptionContent() {
   const venueName = doctor?.hospital?.name || doctor?.chamberAddress || doctor?.schedules?.[0]?.chamberName || 'মূল চেম্বার';
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased flex flex-col selection:bg-sky-100 selection:text-sky-900 pb-20">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased flex flex-col selection:bg-sky-100 selection:text-sky-900 pb-6">
       
       {/* ========================================================================= */}
       {/* 1. ULTRA-MINIMAL TOP CLINICAL HEADER                                      */}

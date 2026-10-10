@@ -16,6 +16,18 @@ export async function GET(request: Request) {
 
     const schedules = await db.doctorSchedule.findMany({
       where: { doctorId },
+      include: {
+        hospital: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            phone: true,
+            logoUrl: true,
+            address: true,
+          },
+        },
+      },
       orderBy: [{ chamberName: 'asc' }, { dayOfWeek: 'asc' }],
     });
 
@@ -37,11 +49,14 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const {
-      chamberName,
-      chamberAddress,
+      hospitalId,
+      roomNumber,
+      requestNote,
+      chamberName: customChamberName,
+      chamberAddress: customChamberAddress,
       division,
       district,
-      shifts, // Array of shifts e.g. [{ daysOfWeek: [6, 0, 1], startTime: "04:00 PM", endTime: "08:00 PM", consultationFee: 800 }]
+      shifts,
       dayOfWeek,
       daysOfWeek,
       startTime,
@@ -51,6 +66,22 @@ export async function POST(request: Request) {
       maxPatients,
       isTelemedicine,
     } = body;
+
+    let targetChamberName = customChamberName || 'প্রধান চেম্বার';
+    let targetChamberAddress = customChamberAddress || null;
+    let approvalStatus = 'APPROVED';
+
+    // If linked to a registered hospital, enforce PENDING approval
+    if (hospitalId) {
+      const hospital = await db.hospital.findUnique({
+        where: { id: hospitalId },
+      });
+      if (hospital) {
+        targetChamberName = hospital.name;
+        targetChamberAddress = targetChamberAddress || hospital.address;
+        approvalStatus = 'PENDING';
+      }
+    }
 
     const createdSchedules = [];
 
@@ -65,8 +96,12 @@ export async function POST(request: Request) {
           const schedule = await db.doctorSchedule.create({
             data: {
               doctorId,
-              chamberName: chamberName || 'প্রধান চেম্বার',
-              chamberAddress: chamberAddress || null,
+              hospitalId: hospitalId || null,
+              chamberName: targetChamberName,
+              chamberAddress: targetChamberAddress,
+              roomNumber: roomNumber || null,
+              requestNote: requestNote || null,
+              approvalStatus,
               division: division || null,
               district: district || null,
               dayOfWeek: parseInt(day.toString(), 10),
@@ -98,8 +133,12 @@ export async function POST(request: Request) {
         const schedule = await db.doctorSchedule.create({
           data: {
             doctorId,
-            chamberName: chamberName || 'প্রধান চেম্বার',
-            chamberAddress: chamberAddress || null,
+            hospitalId: hospitalId || null,
+            chamberName: targetChamberName,
+            chamberAddress: targetChamberAddress,
+            roomNumber: roomNumber || null,
+            requestNote: requestNote || null,
+            approvalStatus,
             division: division || null,
             district: district || null,
             dayOfWeek: parseInt(day.toString(), 10),
@@ -115,10 +154,15 @@ export async function POST(request: Request) {
       }
     }
 
+    const message = hospitalId && approvalStatus === 'PENDING'
+      ? `${targetChamberName}-এ চেম্বারের অনুরোধ পাঠানো হয়েছে। হাসপাতাল কর্তৃপক্ষ অনুমোদন করলে এটি আপনার প্রোফাইলে লাইভ হবে।`
+      : `${createdSchedules.length} টি চেম্বার শিডিউল সফলভাবে যুক্ত হয়েছে।`;
+
     return NextResponse.json({
       success: true,
-      message: `${createdSchedules.length} টি চেম্বার শিডিউল সফলভাবে যুক্ত হয়েছে।`,
+      message,
       schedules: createdSchedules,
+      isPending: approvalStatus === 'PENDING',
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -140,28 +184,20 @@ export async function DELETE(request: Request) {
     const chamberName = searchParams.get('chamberName');
 
     if (scheduleId) {
-      // Verify ownership & delete single schedule
-      const schedule = await db.doctorSchedule.findFirst({
+      await db.doctorSchedule.delete({
         where: { id: scheduleId, doctorId },
       });
-
-      if (!schedule) {
-        return NextResponse.json({ success: false, error: 'শিডিউলটি পাওয়া যায়নি।' }, { status: 404 });
-      }
-
-      await db.doctorSchedule.delete({ where: { id: scheduleId } });
       return NextResponse.json({ success: true, message: 'শিডিউল মুছে ফেলা হয়েছে।' });
     }
 
     if (chamberName) {
-      // Delete all schedules matching chamberName for this doctor
       await db.doctorSchedule.deleteMany({
         where: { doctorId, chamberName },
       });
       return NextResponse.json({ success: true, message: `"${chamberName}" চেম্বারের সকল শিডিউল মুছে ফেলা হয়েছে।` });
     }
 
-    return NextResponse.json({ success: false, error: 'Schedule ID or Chamber Name is required' }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'সঠিক প্যারামিটার দিন।' }, { status: 400 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

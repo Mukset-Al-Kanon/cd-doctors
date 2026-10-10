@@ -13,7 +13,10 @@ export async function GET(request: Request) {
       include: {
         hospital: true,
         department: true,
-        schedules: true,
+        schedules: {
+          where: { approvalStatus: 'APPROVED' },
+          orderBy: { dayOfWeek: 'asc' },
+        },
       },
     });
 

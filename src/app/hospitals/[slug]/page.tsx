@@ -11,7 +11,8 @@ import {
   UserCheck,
   Calendar,
   Building2,
-  CheckCircle2
+  CheckCircle2,
+  Megaphone
 } from 'lucide-react';
 import HospitalInfoTabs from './HospitalInfoTabs';
 import DoctorCardItem from '@/components/DoctorCardItem';
@@ -47,12 +48,48 @@ export default async function HospitalProfilePage({ params }: PageProps) {
       include: {
         district: { include: { division: true } },
         facilities: true,
+        testAvailabilities: {
+          include: { test: true },
+        },
         doctors: {
           where: { status: 'ACTIVE' },
-          include: { schedules: true },
+          include: {
+            schedules: {
+              where: { approvalStatus: 'APPROVED' },
+            },
+          },
         },
       },
     }).catch(() => null);
+
+    if (hospital) {
+      // Also fetch doctors with approved chamber affiliations at this hospital
+      const affiliatedSchedules = await db.doctorSchedule.findMany({
+        where: {
+          hospitalId: hospital.id,
+          approvalStatus: 'APPROVED',
+        },
+        include: {
+          doctor: {
+            include: {
+              schedules: {
+                where: { approvalStatus: 'APPROVED' },
+              },
+            },
+          },
+        },
+      }).catch(() => []);
+
+      // Merge direct & affiliated doctors uniquely
+      const doctorMap = new Map<string, any>();
+      (hospital.doctors || []).forEach((doc: any) => doctorMap.set(doc.id, doc));
+      affiliatedSchedules.forEach((sch: any) => {
+        if (sch.doctor && !doctorMap.has(sch.doctor.id)) {
+          doctorMap.set(sch.doctor.id, sch.doctor);
+        }
+      });
+      hospital.doctors = Array.from(doctorMap.values());
+    }
   } catch (err) {
     console.error('Error fetching hospital by slug, using fallback:', err);
   }
@@ -65,24 +102,22 @@ export default async function HospitalProfilePage({ params }: PageProps) {
     notFound();
   }
 
-  const mapDirectionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+  const mapDirectionsUrl = hospital.googleMapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     hospital.name + ' ' + hospital.address
   )}`;
 
-  const defaultDocPhoto = 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80';
-
   return (
-    <div className="space-y-10 pb-16 pt-4 sm:pt-6">
+    <div className="space-y-8 sm:space-y-10 pb-16 pt-4 sm:pt-6 font-bengali">
       {/* 🌟 EXACT REFERENCE HOSPITAL PROFILE CARD UI */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <div className="bg-white rounded-[32px] sm:rounded-[40px] p-3.5 sm:p-6 border border-slate-200/80 shadow-[0_16px_40px_rgba(0,0,0,0.06)]">
           
           {/* Top Banner Cover Photo */}
-          <div className="relative h-44 sm:h-56 w-full rounded-[24px] sm:rounded-[28px] overflow-hidden bg-gradient-to-r from-pink-200 via-rose-100 to-amber-100 shadow-inner">
+          <div className="relative h-44 sm:h-56 w-full rounded-[24px] sm:rounded-[28px] overflow-hidden bg-gradient-to-r from-sky-200 via-rose-100 to-amber-100 shadow-inner">
             <img
               src={hospital.coverUrl || 'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&auto=format&fit=crop&q=80'}
               alt={hospital.name}
-              className="w-full h-full object-cover opacity-90"
+              className="w-full h-full object-cover opacity-95"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
           </div>
@@ -157,7 +192,7 @@ export default async function HospitalProfilePage({ params }: PageProps) {
                   {(hospital.facilities || []).length || 6}
                 </span>
                 <span className="text-[11px] sm:text-xs font-bold text-slate-400 mt-0.5 block">
-                  Departments
+                  Facilities
                 </span>
               </div>
 
@@ -176,6 +211,20 @@ export default async function HospitalProfilePage({ params }: PageProps) {
         </div>
       </div>
 
+      {/* Hospital Flash Notice Banner (if set by Hospital Admin) */}
+      {hospital.noticeText && (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50 border border-amber-200/90 text-amber-900 text-xs sm:text-sm font-bold flex items-center gap-3 shadow-xs">
+            <Megaphone className="w-4 h-4 text-amber-600 shrink-0 animate-bounce" />
+            <div className="flex-1 leading-snug">
+              <span className="font-black text-amber-950">হাসপাতাল নোটিশ: </span>
+              <span>{hospital.noticeText}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         {/* Doctors Section */}
         <div className="space-y-6">

@@ -184,16 +184,26 @@ export default function AiAssistantChat() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  // Hide AI chat assistant on auth pages (login/register) and admin/doctor portals
+  // Hide AI chat assistant on auth pages (login/register), admin/doctor portals, and hospital portals
   const isDoctorPortal = pathname === '/doctor' || pathname.startsWith('/doctor/');
   const isAdminPortal = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isHospitalPortal = pathname === '/hospital' || pathname.startsWith('/hospital/');
   const isAuthPage = 
     pathname === '/login' || 
     pathname.startsWith('/login/') || 
     pathname === '/register' || 
     pathname.startsWith('/register/');
 
-  if (isAdminPortal || isDoctorPortal || isAuthPage) {
+  const isHomepage = pathname === '/';
+
+  // Auto-close chat on mobile when navigating to any sub-page
+  useEffect(() => {
+    if (!isHomepage && typeof window !== 'undefined' && window.innerWidth < 768) {
+      setIsOpen(false);
+    }
+  }, [pathname, isHomepage]);
+
+  if (isAdminPortal || isDoctorPortal || isHospitalPortal || isAuthPage) {
     return null;
   }
 
@@ -301,9 +311,11 @@ export default function AiAssistantChat() {
 
   return (
     <>
-      {/* CHAT TOGGLE BUTTON */}
+      {/* CHAT TOGGLE BUTTON (Visible on Mobile only on Homepage, Always visible on Desktop) */}
       {!isOpen && (
-        <div className="fixed bottom-20 md:bottom-6 right-3.5 sm:right-6 z-40 font-sans floating-ai-button">
+        <div className={`fixed bottom-20 md:bottom-6 right-3.5 sm:right-6 z-40 font-sans floating-ai-button ${
+          !isHomepage ? 'hidden md:block' : ''
+        }`}>
           <button
             onClick={handleToggle}
             aria-label="CD Doctors Assistant Chat"
@@ -324,7 +336,7 @@ export default function AiAssistantChat() {
       )}
 
       {/* MOBILE DIM OVERLAY */}
-      {isOpen && (
+      {isOpen && isHomepage && (
         <div
           onClick={() => setIsOpen(false)}
           className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-40 sm:hidden transition-opacity duration-300"
@@ -334,6 +346,8 @@ export default function AiAssistantChat() {
       {/* CHAT WINDOW */}
       <div
         className={`fixed inset-0 sm:inset-auto sm:bottom-4 sm:right-4 z-50 w-full sm:w-[420px] max-w-full h-[100dvh] sm:h-[620px] bg-white/85 backdrop-blur-2xl sm:rounded-3xl shadow-[0_24px_60px_-15px_rgba(15,23,42,0.18)] border border-white/90 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right ring-1 ring-slate-900/5 ${
+          !isHomepage ? 'hidden md:flex' : ''
+        } ${
           isOpen
             ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]'
             : 'opacity-0 scale-95 translate-y-4 pointer-events-none'

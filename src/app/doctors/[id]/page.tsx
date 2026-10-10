@@ -76,6 +76,7 @@ export default async function DoctorProfilePage({ params }: PageProps) {
         hospital: { include: { district: true } },
         department: true,
         schedules: {
+          where: { approvalStatus: 'APPROVED' },
           orderBy: { dayOfWeek: 'asc' },
         },
       },

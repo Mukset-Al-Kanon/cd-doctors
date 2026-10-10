@@ -11,6 +11,7 @@ export default function Footer() {
   // Do not render public footer on admin, doctor, login, register, or doctor details profile routes
   const isDoctorPortal = pathname === '/doctor' || pathname.startsWith('/doctor/');
   const isAdminPortal = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isHospitalPortal = pathname === '/hospital' || pathname.startsWith('/hospital/');
   const isDoctorDetailPage = pathname.startsWith('/doctors/') && pathname !== '/doctors';
   const isAuthPage = 
     pathname === '/login' || 
@@ -18,7 +19,7 @@ export default function Footer() {
     pathname === '/register' || 
     pathname.startsWith('/register/');
 
-  if (isAdminPortal || isDoctorPortal || isAuthPage || isDoctorDetailPage) {
+  if (isAdminPortal || isDoctorPortal || isHospitalPortal || isAuthPage || isDoctorDetailPage) {
     return null;
   }
   return (
@@ -53,7 +54,8 @@ export default function Footer() {
               <li><Link href="/doctors" className="hover:text-sky-400 transition-colors">Specialist Doctors</Link></li>
               <li><Link href="/blood" className="hover:text-sky-400 transition-colors">Blood Donor Directory</Link></li>
               <li><Link href="/emergency" className="hover:text-sky-400 transition-colors">24/7 Emergency Ambulance</Link></li>
-              <li><Link href="/about" className="hover:text-sky-400 transition-colors">About CD Doctors</Link></li>
+              <li><Link href="/doctor/login" className="hover:text-sky-400 transition-colors">Doctor Portal Login</Link></li>
+              <li><Link href="/hospital/login" className="hover:text-sky-400 transition-colors">Hospital Counter Desk</Link></li>
             </ul>
           </div>
 

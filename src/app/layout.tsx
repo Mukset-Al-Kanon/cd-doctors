@@ -32,7 +32,7 @@ const inter = Inter({
 });
 
 const notoSansBengali = Noto_Sans_Bengali({
-  weight: ['300', '400', '500', '600', '700', '800'],
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
   subsets: ['bengali'],
   variable: '--font-noto-sans-bengali',
   display: 'swap',
@@ -57,11 +57,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="bn" className={`${shurjo.variable} ${inter.variable} ${notoSansBengali.variable} ${hindSiliguri.variable}`}>
-      <body className={`${shurjo.className} min-h-screen flex flex-col bg-white text-slate-900 antialiased font-bengali overflow-x-hidden`}>
+    <html lang="bn" className={`${inter.variable} ${notoSansBengali.variable} ${hindSiliguri.variable} ${shurjo.variable}`}>
+      <body className={`${inter.className} min-h-screen flex flex-col bg-white text-slate-900 antialiased font-bengali overflow-x-hidden`}>
         <InitialLoadingScreen />
         <Navbar />
-        <main className="flex-1 pb-20 md:pb-0 relative z-10 bg-white">{children}</main>
+        <main className="flex-1 relative z-10">{children}</main>
         <Footer />
         <MobileBottomNav />
         <AiAssistantChat />

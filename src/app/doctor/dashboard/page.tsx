@@ -1,11 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import DoctorBannerPreview from '@/components/doctor/DoctorBannerPreview';
 import DoctorLiveQueueManager from '@/components/DoctorLiveQueueManager';
 import OfficialVerifiedBadge from '@/components/OfficialVerifiedBadge';
+import DoctorScenicHeader from '@/components/doctor/dashboard/DoctorScenicHeader';
+import DoctorCategoryGrid from '@/components/doctor/dashboard/DoctorCategoryGrid';
+import DoctorDashboardOverview from '@/components/doctor/dashboard/DoctorDashboardOverview';
 import { 
   Sparkles, 
   Wallet, 
@@ -63,6 +66,7 @@ import {
   CalendarDays,
   FileCheck,
   BadgeCheck,
+  XCircle,
   DollarSign,
   Star,
   Crown,
@@ -207,8 +211,10 @@ const BD_WEEK_DAYS = [
   { day: 5, short: 'শুক্র', label: 'শুক্রবার' },
 ];
 
-export default function DoctorDashboardPage() {
+function DoctorDashboardContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryDoctorId = searchParams ? searchParams.get('doctorId') : null;
   const [activeTab, setActiveTab] = useState<'appointments' | 'chambers' | 'telemedicine' | 'wallet' | 'boost' | 'packages' | 'banner' | 'profile'>('appointments');
   const [loading, setLoading] = useState(true);
   const [doctor, setDoctor] = useState<any>(null);
@@ -238,7 +244,10 @@ export default function DoctorDashboardPage() {
 
   // Add Chamber Modal State
   const [showAddChamberModal, setShowAddChamberModal] = useState(false);
+  const [registeredHospitalsList, setRegisteredHospitalsList] = useState<any[]>([]);
   const [newChamber, setNewChamber] = useState<{
+    venueType: 'HOSPITAL' | 'PRIVATE';
+    hospitalId: string;
     chamberType: 'PRIVATE' | 'TELEMEDICINE';
     chamberName: string;
     chamberAddress: string;
@@ -249,7 +258,10 @@ export default function DoctorDashboardPage() {
     district: string;
     shifts: ScheduleShift[];
     isTelemedicine: boolean;
+    requestNote: string;
   }>({
+    venueType: 'HOSPITAL',
+    hospitalId: '',
     chamberType: 'PRIVATE',
     chamberName: '',
     chamberAddress: '',
@@ -258,6 +270,7 @@ export default function DoctorDashboardPage() {
     followUpFee: 500,
     division: 'খুলনা',
     district: 'চুয়াডাঙ্গা',
+    requestNote: '',
     shifts: [
       {
         id: 'shift-1',
@@ -303,7 +316,10 @@ export default function DoctorDashboardPage() {
 
   const fetchDoctorData = useCallback(async () => {
     try {
-      const res = await fetch('/api/doctor/auth/me');
+      const url = queryDoctorId 
+        ? `/api/doctor/auth/me?doctorId=${encodeURIComponent(queryDoctorId)}` 
+        : '/api/doctor/auth/me';
+      const res = await fetch(url);
       const data = await res.json();
       if (!data.success) {
         router.push('/doctor/login');
@@ -329,10 +345,16 @@ export default function DoctorDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, queryDoctorId]);
 
   useEffect(() => {
     fetchDoctorData();
+    fetch('/api/hospitals')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.hospitals) setRegisteredHospitalsList(d.hospitals);
+      })
+      .catch(() => {});
   }, [fetchDoctorData]);
 
   const handleLogout = async () => {
@@ -459,16 +481,23 @@ export default function DoctorDashboardPage() {
     e.preventDefault();
     setChamberSaving(true);
     try {
-      const fullAddress = [
-        newChamber.chamberAddress,
-        newChamber.roomNumber ? `রুম: ${newChamber.roomNumber}` : '',
-        newChamber.serialPhone ? `সিরিয়াল: ${newChamber.serialPhone}` : '',
-      ].filter(Boolean).join(', ');
+      const isHospital = newChamber.venueType === 'HOSPITAL' && Boolean(newChamber.hospitalId);
+
+      const fullAddress = isHospital
+        ? newChamber.chamberAddress
+        : [
+            newChamber.chamberAddress,
+            newChamber.roomNumber ? `রুম: ${newChamber.roomNumber}` : '',
+            newChamber.serialPhone ? `সিরিয়াল: ${newChamber.serialPhone}` : '',
+          ].filter(Boolean).join(', ');
 
       const res = await fetch('/api/doctor/chambers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          hospitalId: isHospital ? newChamber.hospitalId : null,
+          roomNumber: newChamber.roomNumber,
+          requestNote: newChamber.requestNote,
           chamberName: newChamber.chamberName,
           chamberAddress: fullAddress,
           division: newChamber.division,
@@ -542,7 +571,10 @@ export default function DoctorDashboardPage() {
 
   if (!doctor) return null;
 
-  const isVerified = Boolean(doctor.subscriptionExpiresAt && new Date(doctor.subscriptionExpiresAt) > new Date());
+  const isVerified = Boolean(
+    (doctor.subscriptionExpiresAt && new Date(doctor.subscriptionExpiresAt) > new Date()) ||
+    doctor.status === 'ACTIVE'
+  );
   const activePackage = DURATION_PACKAGES.find(p => p.id === (doctor.subscriptionTier || doctor.activePackageName)) || null;
 
   // Remaining subscription days calculation
@@ -714,35 +746,25 @@ export default function DoctorDashboardPage() {
       {/* ========================================================================= */}
       <div className="flex-1 flex flex-col min-w-0">
         
-        {/* Modern Mobile Sticky Header */}
-        <header className="lg:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-2.5 flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <img
-              src={doctor.photoUrl || 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=800&auto=format&fit=crop&q=80'}
-              alt={doctor.name}
-              className="w-9 h-9 rounded-xl object-cover border border-slate-200 bg-slate-50 shrink-0"
-            />
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h2 className="text-xs sm:text-sm font-black text-nuvicaNavy-950 truncate leading-tight">{doctor.name}</h2>
-                {isVerified && <OfficialVerifiedBadge className="w-3.5 h-3.5 shrink-0" />}
-              </div>
-              <p className="text-[10.5px] text-slate-500 font-medium truncate">
-                {doctor.hospital?.name || doctor.chamberAddress?.split(',')?.[0] || doctor.specialization || 'বিশেষজ্ঞ চেম্বার'}
-              </p>
-            </div>
-          </div>
+        {/* 🌟 2. SCENIC MEDICAL ART HEADER & 4-COLUMN DOCTOR MENU GRID (Exact Same Design as Homepage) */}
+        <DoctorScenicHeader
+          doctor={doctor}
+          isVerified={isVerified}
+          onOpenMobileNav={() => setShowMobileNav(true)}
+          onLogout={handleLogout}
+          activeTab={activeTab}
+          onSelectTab={(tabId) => setActiveTab(tabId as any)}
+        />
 
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setActiveTab('wallet')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 font-black text-xs border border-sky-200/80 shadow-xs transition-colors cursor-pointer"
-            >
-              <Wallet className="w-3.5 h-3.5 text-sky-600" />
-              <span>৳ {doctor.walletBalance?.toLocaleString()}</span>
-            </button>
-          </div>
-        </header>
+        {/* 4-Column Category Grid with Doctor Features */}
+        <DoctorCategoryGrid
+          doctorId={doctor.id}
+          doctorSlug={doctor.slug}
+          activeTab={activeTab}
+          onSelectTab={(tabId) => setActiveTab(tabId as any)}
+          walletBalance={doctor.walletBalance}
+          appointmentsCount={doctor.appointments?.length}
+        />
 
         {/* Mobile Slide-Over Drawer for "অন্যান্য" (More) */}
         {showMobileNav && (
@@ -917,8 +939,34 @@ export default function DoctorDashboardPage() {
         {/* ========================================================================= */}
         {/* 📋 4. WORKSPACE CONTENT AREA                                              */}
         {/* ========================================================================= */}
-        <main className="p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto space-y-6 pb-28 lg:pb-10">
+        <main className="p-3.5 sm:p-5 lg:p-7 max-w-6xl w-full mx-auto space-y-5 pb-28 lg:pb-10">
           
+          {/* Executive Overview KPIs & Quick Action Bar */}
+          <DoctorDashboardOverview
+            doctor={doctor}
+            isVerified={isVerified}
+            remainingDays={remainingDays}
+            activePackageName={activePackage?.name}
+            isTelemedicineOnline={isTelemedicineOnline}
+            onToggleTelemedicine={async () => {
+              const nextState = !isTelemedicineOnline;
+              setIsTelemedicineOnline(nextState);
+              try {
+                await fetch('/api/doctor/profile', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ isTelemedicineAvailable: nextState }),
+                });
+                showToast('success', nextState ? 'অনলাইন চেম্বার সফলভাবে চালু করা হয়েছে' : 'অনলাইন চেম্বার সাময়িকভাবে বন্ধ করা হয়েছে');
+              } catch (err) {
+                showToast('error', 'স্ট্যাটাস আপডেট করা যায়নি');
+              }
+            }}
+            onOpenRechargeModal={() => setShowRechargeModal(true)}
+            onOpenWithdrawModal={() => setShowWithdrawModal(true)}
+            onSelectTab={(tabId) => setActiveTab(tabId as any)}
+          />
+
           {/* TAB 1: APPOINTMENTS & PATIENTS QUEUE */}
           {activeTab === 'appointments' && (
             <DoctorLiveQueueManager
@@ -938,6 +986,10 @@ export default function DoctorDashboardPage() {
               division: string;
               district: string;
               isTelemedicine: boolean;
+              hospitalId: string | null;
+              approvalStatus: string;
+              rejectionReason: string | null;
+              roomNumber: string | null;
               shifts: Array<{
                 startTime: string;
                 endTime: string;
@@ -956,6 +1008,10 @@ export default function DoctorDashboardPage() {
                     division: sch.division || 'খুলনা',
                     district: sch.district || 'চুয়াডাঙ্গা',
                     isTelemedicine: sch.isTelemedicine || false,
+                    hospitalId: sch.hospitalId || null,
+                    approvalStatus: sch.approvalStatus || 'APPROVED',
+                    rejectionReason: sch.rejectionReason || null,
+                    roomNumber: sch.roomNumber || null,
                     shifts: [],
                   };
                 }
@@ -1005,7 +1061,14 @@ export default function DoctorDashboardPage() {
                         <div className="space-y-2.5">
                           <div className="flex items-start justify-between gap-2">
                             <div>
-                              <h4 className="text-sm font-bold text-slate-900">{chamber.name}</h4>
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-sm font-bold text-slate-900">{chamber.name}</h4>
+                                {chamber.approvalStatus === 'PENDING' && (
+                                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                                    অনুমোদনের অপেক্ষায়
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs text-slate-500 flex items-center gap-1 pt-0.5">
                                 <MapPin className="w-3 h-3 text-slate-400" />
                                 <span>{chamber.address}</span>
@@ -1052,11 +1115,29 @@ export default function DoctorDashboardPage() {
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                          <span className="flex items-center gap-1.5 text-emerald-700 font-semibold text-[11px]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            <span>সিরিয়াল বুকিং সক্রিয়</span>
-                          </span>
+                        <div className="pt-2 border-t border-slate-100">
+                          {chamber.approvalStatus === 'PENDING' ? (
+                            <div className="w-full p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                              <div>
+                                <p className="font-bold">হাসপাতালের অনুমোদনের অপেক্ষায় (Pending)</p>
+                                <p className="text-[10px] text-amber-700">হাসপাতাল অনুমোদন করলে পাবলিক প্রোফাইল ও সিরিয়াল বুকিং সক্রিয় হবে।</p>
+                              </div>
+                            </div>
+                          ) : chamber.approvalStatus === 'REJECTED' ? (
+                            <div className="w-full p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[11px] flex items-center gap-2">
+                              <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                              <div>
+                                <p className="font-bold">চেম্বার আবেদন বাতিল করা হয়েছে</p>
+                                {chamber.rejectionReason && <p className="text-[10px] text-rose-600">কারণ: {chamber.rejectionReason}</p>}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="flex items-center gap-1.5 text-emerald-700 font-semibold text-[11px]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              <span>সিরিয়াল বুকিং সক্রিয়</span>
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))
@@ -1966,74 +2047,186 @@ export default function DoctorDashboardPage() {
               </button>
             </div>
             
-            <form onSubmit={handleAddChamberSubmit} className="space-y-3">
+            <form onSubmit={handleAddChamberSubmit} className="space-y-3.5">
+              
+              {/* Venue Type Selector: Hospital vs Private */}
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">চেম্বারের নাম *</label>
-                <input
-                  type="text"
-                  placeholder="যেমন: ইমপ্যাক্ট হাসপাতাল, চুয়াডাঙ্গা"
-                  value={newChamber.chamberName}
-                  onChange={(e) => setNewChamber({ ...newChamber, chamberName: e.target.value })}
-                  required
-                  className="w-full bg-slate-50 border border-slate-200 rounded p-2 text-slate-900 font-semibold"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">বিভাগ *</label>
-                  <select
-                    value={newChamber.division}
-                    onChange={(e) => {
-                      const newDiv = e.target.value;
-                      const defaultDist = BD_DIVISIONS_AND_DISTRICTS[newDiv]?.[0] || '';
-                      setNewChamber({ ...newChamber, division: newDiv, district: defaultDist });
+                <label className="font-bold text-slate-800 block mb-1.5">চেম্বারের ধরন নির্বাচন করুন *</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const firstHospital = registeredHospitalsList[0];
+                      setNewChamber({
+                        ...newChamber,
+                        venueType: 'HOSPITAL',
+                        hospitalId: firstHospital?.id || '',
+                        chamberName: firstHospital?.name || '',
+                        chamberAddress: firstHospital?.address || '',
+                        district: firstHospital?.districtBn || firstHospital?.district || 'চুয়াডাঙ্গা',
+                      });
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded p-2 text-slate-900 font-semibold"
+                    className={`py-2 px-3 rounded-xl font-bold text-xs border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      newChamber.venueType === 'HOSPITAL'
+                        ? 'bg-sky-50 border-sky-600 text-sky-900 shadow-2xs ring-1 ring-sky-500'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
                   >
-                    {Object.keys(BD_DIVISIONS_AND_DISTRICTS).map((divName) => (
-                      <option key={divName} value={divName}>{divName} বিভাগ</option>
-                    ))}
-                  </select>
-                </div>
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>রেজিস্টার্ড হাসপাতাল</span>
+                  </button>
 
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">জেলা *</label>
-                  <select
-                    value={newChamber.district}
-                    onChange={(e) => setNewChamber({ ...newChamber, district: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded p-2 text-slate-900 font-semibold"
+                  <button
+                    type="button"
+                    onClick={() => setNewChamber({ ...newChamber, venueType: 'PRIVATE', hospitalId: '', chamberName: '' })}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      newChamber.venueType === 'PRIVATE'
+                        ? 'bg-sky-50 border-sky-600 text-sky-900 shadow-2xs ring-1 ring-sky-500'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
                   >
-                    {(BD_DIVISIONS_AND_DISTRICTS[newChamber.division] || []).map((distName) => (
-                      <option key={distName} value={distName}>{distName}</option>
-                    ))}
-                  </select>
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>ব্যক্তিগত চেম্বার</span>
+                  </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">ঠিকানা ও রুম নং</label>
-                  <input
-                    type="text"
-                    placeholder="যেমন: রুম ২০৩, হাসপাতাল রোড"
-                    value={newChamber.chamberAddress}
-                    onChange={(e) => setNewChamber({ ...newChamber, chamberAddress: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded p-2 text-slate-900 font-medium"
-                  />
-                </div>
+              {/* HOSPITAL MODE */}
+              {newChamber.venueType === 'HOSPITAL' ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">হাসপাতাল নির্বাচন করুন *</label>
+                    <select
+                      value={newChamber.hospitalId}
+                      onChange={(e) => {
+                        const h = registeredHospitalsList.find((x) => x.id === e.target.value);
+                        setNewChamber({
+                          ...newChamber,
+                          hospitalId: e.target.value,
+                          chamberName: h ? h.name : '',
+                          chamberAddress: h ? h.address : '',
+                          district: h ? (h.districtBn || h.district || 'চুয়াডাঙ্গা') : 'চুয়াডাঙ্গা',
+                        });
+                      }}
+                      required
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-bold"
+                    >
+                      <option value="">-- হাসপাতাল নির্বাচন করুন --</option>
+                      {registeredHospitalsList.map((h) => (
+                        <option key={h.id} value={h.id}>
+                          {h.name} ({h.districtBn || h.district || 'চুয়াডাঙ্গা'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">সিরিয়াল বুকিং ফোন</label>
-                  <input
-                    type="text"
-                    placeholder="01718-xxxxxx"
-                    value={newChamber.serialPhone}
-                    onChange={(e) => setNewChamber({ ...newChamber, serialPhone: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded p-2 text-slate-900 font-medium"
-                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">চেম্বারের রুম / ব্লক</label>
+                      <input
+                        type="text"
+                        placeholder="যেমন: রুম ২০৪, ২য় তলা"
+                        value={newChamber.roomNumber}
+                        onChange={(e) => setNewChamber({ ...newChamber, roomNumber: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-900 font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">হাসপাতালের জন্য বার্তা (ঐচ্ছিক)</label>
+                      <input
+                        type="text"
+                        placeholder="যেমন: নিয়মিত চেম্বার শিডিউল"
+                        value={newChamber.requestNote}
+                        onChange={(e) => setNewChamber({ ...newChamber, requestNote: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-900 font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Affiliation Notice */}
+                  <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 text-[11.5px] space-y-1">
+                    <div className="flex items-center gap-1.5 font-black text-amber-800">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>হাসপাতাল অনুমোদন প্রোটোকল:</span>
+                    </div>
+                    <p className="text-amber-700">
+                      এই চেম্বারটি যোগ করলে সংশ্লিষ্ট হাসপাতালের ড্যাশবোর্ডে একটি ভেরিফিকেশন অনুরোধ যাবে। হাসপাতাল কর্তৃপক্ষ অনুমোদন করার পর এটি আপনার প্রোফাইলে লাইভ হবে।
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* PRIVATE CHAMBER MODE */
+                <div className="space-y-3">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">চেম্বারের নাম *</label>
+                    <input
+                      type="text"
+                      placeholder="যেমন: ডক্টরস কেয়ার পয়েন্ট, চুয়াডাঙ্গা"
+                      value={newChamber.chamberName}
+                      onChange={(e) => setNewChamber({ ...newChamber, chamberName: e.target.value })}
+                      required
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-900 font-semibold"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">বিভাগ *</label>
+                      <select
+                        value={newChamber.division}
+                        onChange={(e) => {
+                          const newDiv = e.target.value;
+                          const defaultDist = BD_DIVISIONS_AND_DISTRICTS[newDiv]?.[0] || '';
+                          setNewChamber({ ...newChamber, division: newDiv, district: defaultDist });
+                        }}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-900 font-semibold"
+                      >
+                        {Object.keys(BD_DIVISIONS_AND_DISTRICTS).map((divName) => (
+                          <option key={divName} value={divName}>{divName} বিভাগ</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">জেলা *</label>
+                      <select
+                        value={newChamber.district}
+                        onChange={(e) => setNewChamber({ ...newChamber, district: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-900 font-semibold"
+                      >
+                        {(BD_DIVISIONS_AND_DISTRICTS[newChamber.division] || []).map((distName) => (
+                          <option key={distName} value={distName}>{distName}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">ঠিকানা ও রুম নং</label>
+                      <input
+                        type="text"
+                        placeholder="যেমন: রুম ২০৩, সদর রোড"
+                        value={newChamber.chamberAddress}
+                        onChange={(e) => setNewChamber({ ...newChamber, chamberAddress: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-900 font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">সিরিয়াল বুকিং ফোন</label>
+                      <input
+                        type="text"
+                        placeholder="01718-xxxxxx"
+                        value={newChamber.serialPhone}
+                        onChange={(e) => setNewChamber({ ...newChamber, serialPhone: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-900 font-medium"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Shifts */}
               <div className="space-y-2 pt-1 border-t border-slate-100">
@@ -2129,5 +2322,20 @@ export default function DoctorDashboardPage() {
       )}
 
     </div>
+  );
+}
+
+export default function DoctorDashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-3 font-bengali">
+          <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xs font-semibold text-slate-500">পোর্টাল লোড হচ্ছে...</p>
+        </div>
+      }
+    >
+      <DoctorDashboardContent />
+    </Suspense>
   );
 }

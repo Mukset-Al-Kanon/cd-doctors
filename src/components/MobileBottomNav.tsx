@@ -14,9 +14,10 @@ import {
 export default function MobileBottomNav() {
   const pathname = usePathname();
 
-  // Hide on admin portal, doctor portal, doctor detail pages, booking page, video room, and auth pages
+  // Hide on admin portal, doctor portal, hospital portal, doctor detail pages, booking page, video room, and auth pages
   const isDoctorPortal = pathname === '/doctor' || pathname.startsWith('/doctor/');
   const isAdminPortal = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isHospitalPortal = pathname === '/hospital' || pathname.startsWith('/hospital/');
   const isDoctorDetailPage = pathname.startsWith('/doctors/') && pathname !== '/doctors';
   const isBookingPage = pathname.startsWith('/book/') || pathname === '/book';
   const isVideoRoom = pathname.startsWith('/telemedicine/room');
@@ -26,7 +27,7 @@ export default function MobileBottomNav() {
     pathname === '/register' || 
     pathname.startsWith('/register/');
 
-  if (isAdminPortal || isDoctorPortal || isAuthPage || isDoctorDetailPage || isBookingPage || isVideoRoom) {
+  if (isAdminPortal || isDoctorPortal || isHospitalPortal || isAuthPage || isDoctorDetailPage || isBookingPage || isVideoRoom) {
     return null;
   }
 
@@ -39,10 +40,13 @@ export default function MobileBottomNav() {
   ];
 
   return (
-    <nav 
-      aria-label="Mobile Bottom Navigation" 
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 w-full select-none font-bengali mobile-bottom-bar"
-    >
+    <>
+      {/* Spacer so page content does not get hidden behind the fixed bottom nav */}
+      <div className="h-20 md:hidden pointer-events-none" aria-hidden="true" />
+      <nav 
+        aria-label="Mobile Bottom Navigation" 
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 w-full select-none font-bengali mobile-bottom-bar"
+      >
       <div className="bg-white/95 backdrop-blur-xl border-t border-x border-slate-200/80 rounded-t-[32px] sm:rounded-t-[36px] px-3 pt-3 pb-3.5 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] flex items-center justify-around relative">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -89,5 +93,6 @@ export default function MobileBottomNav() {
         })}
       </div>
     </nav>
+    </>
   );
 }

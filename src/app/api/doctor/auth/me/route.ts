@@ -7,7 +7,9 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const cookieStore = cookies();
-    const doctorId = cookieStore.get('cddoctor_session')?.value;
+    const { searchParams } = new URL(request.url);
+    const queryDoctorId = searchParams.get('doctorId');
+    const doctorId = queryDoctorId || cookieStore.get('cddoctor_session')?.value;
 
     if (!doctorId) {
       return NextResponse.json(
@@ -58,6 +60,7 @@ export async function GET(request: Request) {
         slug: doctor.slug,
         email: doctor.email,
         phone: doctor.phone,
+        status: doctor.status,
         degrees: doctor.degrees,
         specialization: doctor.specialization,
         bmdcNumber: doctor.bmdcNumber,

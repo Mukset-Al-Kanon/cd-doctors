@@ -46,7 +46,7 @@ export const metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="space-y-20 pt-10 pb-20 overflow-hidden font-bengali">
+    <div className="space-y-16 sm:space-y-20 pt-6 sm:pt-10 pb-6 sm:pb-12 overflow-hidden font-bengali">
 
       {/* ==================================================
           SECTION 2 — WHAT IS CD DOCTORS?
